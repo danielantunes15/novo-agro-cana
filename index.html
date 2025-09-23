@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Apontamento - Corte de Cana</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">CanaSystem</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Apontamentos</a>
+                <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
+                <a href="cadastros-gerais.html" class="nav-link active">Cadastros</a>
+                <a href="relatorios.html" class="nav-link">Relatórios</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div id="loading" class="card">
+                <div class="spinner"></div>
+                <p style="text-align: center;">Conectando ao banco de dados...</p>
+            </div>
+
+            <div id="content" style="display: none;">
+                <div class="card">
+                    <h2>Novo Apontamento de Corte</h2>
+                    
+                    <form id="apontamento-form" class="form">
+                        <div class="form-group">
+                            <label for="data-corte">Data do Corte</label>
+                            <input type="date" id="data-corte" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="turma">Turma</label>
+                            <select id="turma" required>
+                                <option value="">Selecione a turma</option>
+                                <option value="turma1">Turma 1</option>
+                                <option value="turma2">Turma 2</option>
+                                <option value="turma3">Turma 3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="fazenda">Fazenda</label>
+                            <select id="fazenda" required>
+                                <option value="">Selecione a fazenda</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="talhao">Talhão</label>
+                            <select id="talhao" required>
+                                <option value="">Selecione o talhão</option>
+                            </select>
+                        </div>
+                        
+                        <div id="funcionarios-container">
+                            <div class="funcionario-item">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Funcionário</label>
+                                        <select class="funcionario-select" required>
+                                            <option value="">Selecione o funcionário</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Metros Cortados</label>
+                                        <input type="number" class="metros-input" step="0.01" min="0" required>
+                                    </div>
+                                    <button type="button" class="btn-remove" style="display: none;">×</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" id="add-funcionario" class="btn-secondary">+ Adicionar Funcionário</button>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Salvar Apontamento</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <h2>Apontamentos Recentes</h2>
+                    <div id="apontamentos-list" class="table-container">
+                        <!-- Lista de apontamentos será carregada aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="error-message" class="card" style="display: none; background-color: #f8d7da; color: #721c24;">
+                <h2>Erro de Conexão</h2>
+                <p>Não foi possível conectar ao banco de dados. Verifique:</p>
+                <ul>
+                    <li>Sua conexão com a internet</li>
+                    <li>Se as credenciais do Supabase estão corretas</li>
+                    <li>Se as tabelas foram criadas no Supabase</li>
+                </ul>
+                <button onclick="location.reload()" class="btn-primary">Tentar Novamente</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
+
+        // Inicializar Supabase
+        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        console.log('Supabase inicializado');
+    </script>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
