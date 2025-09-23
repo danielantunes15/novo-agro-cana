@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const loadingElement = document.getElementById('loading');
+    const contentElement = document.getElementById('content');
+    const errorElement = document.getElementById('error-message');
+    
+    // Elementos do DOM
     const relatorioForm = document.getElementById('relatorio-form');
     const quinzenaForm = document.getElementById('quinzena-form');
     const exportPdfBtn = document.getElementById('export-pdf');
@@ -10,14 +15,38 @@ document.addEventListener('DOMContentLoaded', function() {
     let dadosRelatorioAtual = null;
     let dadosQuinzenaAtual = null;
     
-    // Carregar dados iniciais
-    carregarFazendasParaRelatorio();
-    
-    // Event Listeners
-    relatorioForm.addEventListener('submit', gerarRelatorio);
-    quinzenaForm.addEventListener('submit', gerarEspelhoQuinzena);
-    exportPdfBtn.addEventListener('click', exportarRelatorioPDF);
-    exportQuinzenaBtn.addEventListener('click', exportarQuinzenaPDF);
+    // Função para inicializar a página
+    async function inicializarPagina() {
+        try {
+            console.log('Testando conexão com Supabase...');
+            
+            // Testar a conexão com uma query simples
+            const { data, error } = await supabase
+                .from('fazendas')
+                .select('id')
+                .limit(1);
+            
+            if (error) {
+                throw error;
+            }
+            
+            // Conexão bem-sucedida - esconder loading e mostrar conteúdo
+            console.log('Conexão estabelecida com sucesso!');
+            loadingElement.style.display = 'none';
+            errorElement.style.display = 'none';
+            contentElement.style.display = 'block';
+            
+            // Carregar dados iniciais
+            await carregarFazendasParaRelatorio();
+            
+        } catch (error) {
+            console.error('Erro na conexão:', error);
+            // Mostrar mensagem de erro
+            loadingElement.style.display = 'none';
+            contentElement.style.display = 'none';
+            errorElement.style.display = 'block';
+        }
+    }
     
     // Função para carregar fazendas no select de relatórios
     async function carregarFazendasParaRelatorio() {
@@ -36,10 +65,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 option.textContent = fazenda.nome;
                 fazendaRelatorioSelect.appendChild(option);
             });
+            
+            console.log('Fazendas carregadas:', data.length);
         } catch (error) {
             console.error('Erro ao carregar fazendas:', error);
         }
     }
+    
+    // Event Listeners
+    relatorioForm.addEventListener('submit', gerarRelatorio);
+    quinzenaForm.addEventListener('submit', gerarEspelhoQuinzena);
+    exportPdfBtn.addEventListener('click', exportarRelatorioPDF);
+    exportQuinzenaBtn.addEventListener('click', exportarQuinzenaPDF);
     
     // Função para gerar relatório
     async function gerarRelatorio(e) {
@@ -56,27 +93,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
+            // Converter "Turma 1" para "turma1" (como está no banco)
+            const turmaBanco = turma ? turma.toLowerCase().replace(' ', '') : turma;
+            
             let query = supabase
                 .from('apontamentos')
                 .select(`
                     id,
                     data_corte,
                     turma,
-                    fazendas(nome),
-                    talhoes(numero, area, espacamento),
+                    fazenda_id,
+                    talhao_id,
                     preco_por_metro,
+                    fazendas!inner(nome),
+                    talhoes!inner(numero, area, espacamento),
                     cortes_funcionarios(
-                        funcionarios(nome),
                         metros,
-                        valor
+                        valor,
+                        funcionario_id,
+                        funcionarios!inner(nome, turma)
                     )
                 `)
                 .gte('data_corte', dataInicio)
                 .lte('data_corte', dataFim)
                 .order('data_corte', { ascending: false });
             
-            if (turma) {
-                query = query.eq('turma', turma);
+            if (turmaBanco) {
+                query = query.eq('turma', turmaBanco);
             }
             
             if (fazendaId) {
@@ -87,19 +130,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             if (error) throw error;
             
+            console.log('Dados do relatório:', data);
             dadosRelatorioAtual = data;
             exibirRelatorio(data);
             exportPdfBtn.disabled = false;
             
         } catch (error) {
             console.error('Erro ao gerar relatório:', error);
-            resultadoRelatorio.innerHTML = '<p>Erro ao gerar relatório.</p>';
+            resultadoRelatorio.innerHTML = '<p style="color: red;">Erro ao gerar relatório: ' + error.message + '</p>';
         }
     }
     
     // Função para exibir relatório
     function exibirRelatorio(dados) {
-        if (dados.length === 0) {
+        if (!dados || dados.length === 0) {
             resultadoRelatorio.innerHTML = '<p>Nenhum dado encontrado para o período selecionado.</p>';
             return;
         }
@@ -124,22 +168,36 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalValor = 0;
         
         dados.forEach(apontamento => {
-            apontamento.cortes_funcionarios.forEach(corte => {
-                totalMetros += corte.metros;
-                totalValor += corte.valor;
-                
+            // Verificar se existem cortes
+            if (apontamento.cortes_funcionarios && apontamento.cortes_funcionarios.length > 0) {
+                apontamento.cortes_funcionarios.forEach(corte => {
+                    totalMetros += corte.metros || 0;
+                    totalValor += corte.valor || 0;
+                    
+                    html += `
+                        <tr>
+                            <td>${new Date(apontamento.data_corte).toLocaleDateString('pt-BR')}</td>
+                            <td>${apontamento.turma}</td>
+                            <td>${apontamento.fazendas?.nome || 'N/A'}</td>
+                            <td>${apontamento.talhoes?.numero || 'N/A'}</td>
+                            <td>${corte.funcionarios?.nome || 'N/A'}</td>
+                            <td>${(corte.metros || 0).toFixed(2)}</td>
+                            <td>R$ ${(corte.valor || 0).toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                // Caso não haja cortes registrados
                 html += `
                     <tr>
                         <td>${new Date(apontamento.data_corte).toLocaleDateString('pt-BR')}</td>
                         <td>${apontamento.turma}</td>
-                        <td>${apontamento.fazendas.nome}</td>
-                        <td>${apontamento.talhoes.numero}</td>
-                        <td>${corte.funcionarios.nome}</td>
-                        <td>${corte.metros.toFixed(2)}</td>
-                        <td>R$ ${corte.valor.toFixed(2)}</td>
+                        <td>${apontamento.fazendas?.nome || 'N/A'}</td>
+                        <td>${apontamento.talhoes?.numero || 'N/A'}</td>
+                        <td colspan="3" style="text-align: center;">Nenhum corte registrado</td>
                     </tr>
                 `;
-            });
+            }
         });
         
         html += `
@@ -180,18 +238,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const dataFimSegunda = `${ano}-${mes}-${ultimoDia}`;
         
         try {
+            // Converter "Turma 1" para "turma1" (como está no banco)
+            const turmaBanco = turma.toLowerCase().replace(' ', '');
+            
             // Buscar dados da primeira quinzena
             const { data: primeiraQuinzena, error: error1 } = await supabase
                 .from('apontamentos')
                 .select(`
                     data_corte,
                     cortes_funcionarios(
-                        funcionarios(nome, turma),
                         metros,
-                        valor
+                        valor,
+                        funcionarios!inner(nome, turma)
                     )
                 `)
-                .eq('turma', turma)
+                .eq('turma', turmaBanco)
                 .gte('data_corte', dataInicioPrimeira)
                 .lte('data_corte', dataFimPrimeira);
                 
@@ -203,12 +264,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 .select(`
                     data_corte,
                     cortes_funcionarios(
-                        funcionarios(nome, turma),
                         metros,
-                        valor
+                        valor,
+                        funcionarios!inner(nome, turma)
                     )
                 `)
-                .eq('turma', turma)
+                .eq('turma', turmaBanco)
                 .gte('data_corte', dataInicioSegunda)
                 .lte('data_corte', dataFimSegunda);
                 
@@ -228,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Erro ao gerar espelho de quinzena:', error);
-            resultadoQuinzena.innerHTML = '<p>Erro ao gerar espelho de quinzena.</p>';
+            resultadoQuinzena.innerHTML = '<p style="color: red;">Erro ao gerar espelho de quinzena: ' + error.message + '</p>';
         }
     }
     
@@ -243,27 +304,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const funcionariosMap = new Map();
         
         dadosCompletos.forEach(apontamento => {
-            apontamento.cortes_funcionarios.forEach(corte => {
-                const funcionarioNome = corte.funcionarios.nome;
-                
-                if (!funcionariosMap.has(funcionarioNome)) {
-                    funcionariosMap.set(funcionarioNome, {
-                        primeiraQuinzena: { metros: 0, valor: 0 },
-                        segundaQuinzena: { metros: 0, valor: 0 },
-                        total: { metros: 0, valor: 0 }
-                    });
-                }
-                
-                const data = new Date(apontamento.data_corte);
-                const dia = data.getDate();
-                const quinzena = dia <= 15 ? 'primeiraQuinzena' : 'segundaQuinzena';
-                
-                funcionariosMap.get(funcionarioNome)[quinzena].metros += corte.metros;
-                funcionariosMap.get(funcionarioNome)[quinzena].valor += corte.valor;
-                funcionariosMap.get(funcionarioNome).total.metros += corte.metros;
-                funcionariosMap.get(funcionarioNome).total.valor += corte.valor;
-            });
+            if (apontamento.cortes_funcionarios && apontamento.cortes_funcionarios.length > 0) {
+                apontamento.cortes_funcionarios.forEach(corte => {
+                    const funcionarioNome = corte.funcionarios?.nome;
+                    
+                    if (!funcionarioNome) return;
+                    
+                    if (!funcionariosMap.has(funcionarioNome)) {
+                        funcionariosMap.set(funcionarioNome, {
+                            primeiraQuinzena: { metros: 0, valor: 0 },
+                            segundaQuinzena: { metros: 0, valor: 0 },
+                            total: { metros: 0, valor: 0 }
+                        });
+                    }
+                    
+                    const data = new Date(apontamento.data_corte);
+                    const dia = data.getDate();
+                    const quinzena = dia <= 15 ? 'primeiraQuinzena' : 'segundaQuinzena';
+                    
+                    funcionariosMap.get(funcionarioNome)[quinzena].metros += corte.metros || 0;
+                    funcionariosMap.get(funcionarioNome)[quinzena].valor += corte.valor || 0;
+                    funcionariosMap.get(funcionarioNome).total.metros += corte.metros || 0;
+                    funcionariosMap.get(funcionarioNome).total.valor += corte.valor || 0;
+                });
+            }
         });
+        
+        if (funcionariosMap.size === 0) {
+            resultadoQuinzena.innerHTML = '<p>Nenhum dado de funcionários encontrado para a quinzena selecionada.</p>';
+            return;
+        }
         
         let html = `
             <h3>Espelho de Quinzena - ${dadosQuinzenaAtual.turma.toUpperCase()} - ${dadosQuinzenaAtual.mes}/${dadosQuinzenaAtual.ano}</h3>
@@ -326,7 +396,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Função para exportar relatório em PDF
     function exportarRelatorioPDF() {
-        if (!dadosRelatorioAtual) return;
+        if (!dadosRelatorioAtual || dadosRelatorioAtual.length === 0) {
+            alert('Não há dados para exportar.');
+            return;
+        }
         
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -341,20 +414,22 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalValor = 0;
         
         dadosRelatorioAtual.forEach(apontamento => {
-            apontamento.cortes_funcionarios.forEach(corte => {
-                totalMetros += corte.metros;
-                totalValor += corte.valor;
-                
-                data.push([
-                    new Date(apontamento.data_corte).toLocaleDateString('pt-BR'),
-                    apontamento.turma,
-                    apontamento.fazendas.nome,
-                    apontamento.talhoes.numero.toString(),
-                    corte.funcionarios.nome,
-                    corte.metros.toFixed(2),
-                    'R$ ' + corte.valor.toFixed(2)
-                ]);
-            });
+            if (apontamento.cortes_funcionarios && apontamento.cortes_funcionarios.length > 0) {
+                apontamento.cortes_funcionarios.forEach(corte => {
+                    totalMetros += corte.metros || 0;
+                    totalValor += corte.valor || 0;
+                    
+                    data.push([
+                        new Date(apontamento.data_corte).toLocaleDateString('pt-BR'),
+                        apontamento.turma,
+                        apontamento.fazendas?.nome || 'N/A',
+                        apontamento.talhoes?.numero?.toString() || 'N/A',
+                        corte.funcionarios?.nome || 'N/A',
+                        (corte.metros || 0).toFixed(2),
+                        'R$ ' + (corte.valor || 0).toFixed(2)
+                    ]);
+                });
+            }
         });
         
         data.push(['TOTAL', '', '', '', '', totalMetros.toFixed(2), 'R$ ' + totalValor.toFixed(2)]);
@@ -372,7 +447,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Função para exportar espelho de quinzena em PDF
     function exportarQuinzenaPDF() {
-        if (!dadosQuinzenaAtual) return;
+        if (!dadosQuinzenaAtual) {
+            alert('Não há dados para exportar.');
+            return;
+        }
         
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -389,26 +467,30 @@ document.addEventListener('DOMContentLoaded', function() {
         const todosDados = [...dadosQuinzenaAtual.primeiraQuinzena, ...dadosQuinzenaAtual.segundaQuinzena];
         
         todosDados.forEach(apontamento => {
-            apontamento.cortes_funcionarios.forEach(corte => {
-                const funcionarioNome = corte.funcionarios.nome;
-                
-                if (!funcionariosMap.has(funcionarioNome)) {
-                    funcionariosMap.set(funcionarioNome, {
-                        primeiraQuinzena: { metros: 0, valor: 0 },
-                        segundaQuinzena: { metros: 0, valor: 0 },
-                        total: { metros: 0, valor: 0 }
-                    });
-                }
-                
-                const dataCorte = new Date(apontamento.data_corte);
-                const dia = dataCorte.getDate();
-                const quinzena = dia <= 15 ? 'primeiraQuinzena' : 'segundaQuinzena';
-                
-                funcionariosMap.get(funcionarioNome)[quinzena].metros += corte.metros;
-                funcionariosMap.get(funcionarioNome)[quinzena].valor += corte.valor;
-                funcionariosMap.get(funcionarioNome).total.metros += corte.metros;
-                funcionariosMap.get(funcionarioNome).total.valor += corte.valor;
-            });
+            if (apontamento.cortes_funcionarios && apontamento.cortes_funcionarios.length > 0) {
+                apontamento.cortes_funcionarios.forEach(corte => {
+                    const funcionarioNome = corte.funcionarios?.nome;
+                    
+                    if (!funcionarioNome) return;
+                    
+                    if (!funcionariosMap.has(funcionarioNome)) {
+                        funcionariosMap.set(funcionarioNome, {
+                            primeiraQuinzena: { metros: 0, valor: 0 },
+                            segundaQuinzena: { metros: 0, valor: 0 },
+                            total: { metros: 0, valor: 0 }
+                        });
+                    }
+                    
+                    const dataCorte = new Date(apontamento.data_corte);
+                    const dia = dataCorte.getDate();
+                    const quinzena = dia <= 15 ? 'primeiraQuinzena' : 'segundaQuinzena';
+                    
+                    funcionariosMap.get(funcionarioNome)[quinzena].metros += corte.metros || 0;
+                    funcionariosMap.get(funcionarioNome)[quinzena].valor += corte.valor || 0;
+                    funcionariosMap.get(funcionarioNome).total.metros += corte.metros || 0;
+                    funcionariosMap.get(funcionarioNome).total.valor += corte.valor || 0;
+                });
+            }
         });
         
         let totalGeral = { primeiraQuinzena: { metros: 0, valor: 0 }, segundaQuinzena: { metros: 0, valor: 0 }, total: { metros: 0, valor: 0 } };
@@ -452,4 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         doc.save(`espelho_quinzena_${dadosQuinzenaAtual.turma}_${dadosQuinzenaAtual.mes}_${dadosQuinzenaAtual.ano}.pdf`);
     }
+    
+    // Inicializar a página
+    inicializarPagina();
 });
