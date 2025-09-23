@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     const fazendaTalhaoSelect = document.getElementById('fazenda-talhao');
     const fazendasList = document.getElementById('fazendas-list');
 
+    // Variáveis para controle de edição
+    let fazendaEditandoId = null;
+    let talhaoEditandoId = null;
+
     try {
         // Mostrar loading
         loadingElement.style.display = 'block';
@@ -29,6 +33,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Configurar event listeners
         fazendaForm.addEventListener('submit', salvarFazenda);
         talhaoForm.addEventListener('submit', salvarTalhao);
+
+        // Adicionar botões de cancelar
+        adicionarBotoesCancelar();
 
         console.log('Módulo de fazendas inicializado com sucesso!');
 
@@ -77,6 +84,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         }, 5000);
     }
 
+    function limparFormularioFazenda() {
+        fazendaForm.reset();
+        fazendaEditandoId = null;
+        document.querySelector('#fazenda-form button[type="submit"]').textContent = 'Salvar Fazenda';
+    }
+
+    function limparFormularioTalhao() {
+        talhaoForm.reset();
+        document.getElementById('preco-tonelada').value = '10.00';
+        document.getElementById('producao-estimada').value = '100.00';
+        talhaoEditandoId = null;
+        document.querySelector('#talhao-form button[type="submit"]').textContent = 'Salvar Talhão';
+    }
+
     // Função para salvar fazenda
     async function salvarFazenda(e) {
         e.preventDefault();
@@ -89,16 +110,34 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         try {
-            const { data, error } = await supabase
-                .from('fazendas')
-                .insert([{ nome: nomeFazenda }])
-                .select()
-                .single();
-                
-            if (error) throw error;
+            let result;
             
-            mostrarMensagem('Fazenda salva com sucesso!');
-            fazendaForm.reset();
+            if (fazendaEditandoId) {
+                // Editar fazenda existente
+                const { data, error } = await supabase
+                    .from('fazendas')
+                    .update({ nome: nomeFazenda })
+                    .eq('id', fazendaEditandoId)
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                result = data;
+                mostrarMensagem('Fazenda atualizada com sucesso!');
+            } else {
+                // Criar nova fazenda
+                const { data, error } = await supabase
+                    .from('fazendas')
+                    .insert([{ nome: nomeFazenda }])
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                result = data;
+                mostrarMensagem('Fazenda salva com sucesso!');
+            }
+            
+            limparFormularioFazenda();
             await carregarFazendasParaSelect();
             await carregarFazendasETalhoes();
             
@@ -125,25 +164,48 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         try {
-            const { data, error } = await supabase
-                .from('talhoes')
-                .insert([{
-                    fazenda_id: fazendaId,
-                    numero: parseInt(numeroTalhao),
-                    area: parseFloat(areaTalhao),
-                    espacamento: parseFloat(espacamentoTalhao),
-                    preco_tonelada: parseFloat(precoTonelada),
-                    producao_estimada: parseFloat(producaoEstimada)
-                }])
-                .select()
-                .single();
-                
-            if (error) throw error;
+            let result;
             
-            mostrarMensagem('Talhão salvo com sucesso!');
-            talhaoForm.reset();
-            document.getElementById('preco-tonelada').value = '10.00';
-            document.getElementById('producao-estimada').value = '100.00';
+            if (talhaoEditandoId) {
+                // Editar talhão existente
+                const { data, error } = await supabase
+                    .from('talhoes')
+                    .update({
+                        fazenda_id: fazendaId,
+                        numero: parseInt(numeroTalhao),
+                        area: parseFloat(areaTalhao),
+                        espacamento: parseFloat(espacamentoTalhao),
+                        preco_tonelada: parseFloat(precoTonelada),
+                        producao_estimada: parseFloat(producaoEstimada)
+                    })
+                    .eq('id', talhaoEditandoId)
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                result = data;
+                mostrarMensagem('Talhão atualizado com sucesso!');
+            } else {
+                // Criar novo talhão
+                const { data, error } = await supabase
+                    .from('talhoes')
+                    .insert([{
+                        fazenda_id: fazendaId,
+                        numero: parseInt(numeroTalhao),
+                        area: parseFloat(areaTalhao),
+                        espacamento: parseFloat(espacamentoTalhao),
+                        preco_tonelada: parseFloat(precoTonelada),
+                        producao_estimada: parseFloat(producaoEstimada)
+                    }])
+                    .select()
+                    .single();
+                    
+                if (error) throw error;
+                result = data;
+                mostrarMensagem('Talhão salvo com sucesso!');
+            }
+            
+            limparFormularioTalhao();
             await carregarFazendasETalhoes();
             
         } catch (error) {
@@ -206,7 +268,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             data.forEach(fazenda => {
                 html += `
                     <div class="fazenda-item" style="margin-bottom: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-                        <h3 style="margin-bottom: 1rem; color: #2c7744;">${fazenda.nome}</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0; color: #2c7744;">${fazenda.nome}</h3>
+                            <div>
+                                <button class="btn-secondary" onclick="editarFazenda('${fazenda.id}')">Editar Fazenda</button>
+                                <button class="btn-remove" onclick="excluirFazenda('${fazenda.id}')">Excluir Fazenda</button>
+                            </div>
+                        </div>
                 `;
                 
                 if (!fazenda.talhoes || fazenda.talhoes.length === 0) {
@@ -257,9 +325,122 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    function adicionarBotoesCancelar() {
+        // Botão de cancelar para fazenda
+        const btnCancelarFazenda = document.createElement('button');
+        btnCancelarFazenda.type = 'button';
+        btnCancelarFazenda.className = 'btn-secondary';
+        btnCancelarFazenda.textContent = 'Cancelar Edição';
+        btnCancelarFazenda.style.marginLeft = '10px';
+        btnCancelarFazenda.onclick = limparFormularioFazenda;
+        
+        const formActionsFazenda = fazendaForm.querySelector('.form-actions');
+        formActionsFazenda.appendChild(btnCancelarFazenda);
+
+        // Botão de cancelar para talhão
+        const btnCancelarTalhao = document.createElement('button');
+        btnCancelarTalhao.type = 'button';
+        btnCancelarTalhao.className = 'btn-secondary';
+        btnCancelarTalhao.textContent = 'Cancelar Edição';
+        btnCancelarTalhao.style.marginLeft = '10px';
+        btnCancelarTalhao.onclick = limparFormularioTalhao;
+        
+        const formActionsTalhao = talhaoForm.querySelector('.form-actions');
+        formActionsTalhao.appendChild(btnCancelarTalhao);
+    }
+
     // Funções globais para ações
+    window.editarFazenda = async function(fazendaId) {
+        try {
+            const { data, error } = await supabase
+                .from('fazendas')
+                .select('*')
+                .eq('id', fazendaId)
+                .single();
+                
+            if (error) throw error;
+            
+            // Preencher formulário com dados da fazenda
+            document.getElementById('nome-fazenda').value = data.nome;
+            
+            // Atualizar estado para edição
+            fazendaEditandoId = fazendaId;
+            document.querySelector('#fazenda-form button[type="submit"]').textContent = 'Atualizar Fazenda';
+            
+            // Rolar até o formulário
+            document.getElementById('fazenda-form').scrollIntoView({ behavior: 'smooth' });
+            
+            mostrarMensagem('Editando fazenda. Preencha os dados e clique em "Atualizar Fazenda".', 'success');
+            
+        } catch (error) {
+            console.error('Erro ao carregar fazenda para edição:', error);
+            mostrarMensagem('Erro ao carregar dados da fazenda: ' + error.message, 'error');
+        }
+    };
+
+    window.excluirFazenda = async function(fazendaId) {
+        if (!confirm('Tem certeza que deseja excluir esta fazenda? TODOS OS TALHÕES associados também serão excluídos!')) {
+            return;
+        }
+        
+        try {
+            // Primeiro excluir os talhões associados
+            const { error: errorTalhoes } = await supabase
+                .from('talhoes')
+                .delete()
+                .eq('fazenda_id', fazendaId);
+                
+            if (errorTalhoes) throw errorTalhoes;
+            
+            // Depois excluir a fazenda
+            const { error } = await supabase
+                .from('fazendas')
+                .delete()
+                .eq('id', fazendaId);
+                
+            if (error) throw error;
+            
+            mostrarMensagem('Fazenda e talhões associados excluídos com sucesso!');
+            await carregarFazendasParaSelect();
+            await carregarFazendasETalhoes();
+            
+        } catch (error) {
+            console.error('Erro ao excluir fazenda:', error);
+            mostrarMensagem('Erro ao excluir fazenda: ' + error.message, 'error');
+        }
+    };
+
     window.editarTalhao = async function(talhaoId) {
-        mostrarMensagem('Funcionalidade de edição será implementada em breve.', 'error');
+        try {
+            const { data, error } = await supabase
+                .from('talhoes')
+                .select('*')
+                .eq('id', talhaoId)
+                .single();
+                
+            if (error) throw error;
+            
+            // Preencher formulário com dados do talhão
+            document.getElementById('fazenda-talhao').value = data.fazenda_id;
+            document.getElementById('numero-talhao').value = data.numero;
+            document.getElementById('area-talhao').value = data.area;
+            document.getElementById('espacamento-talhao').value = data.espacamento;
+            document.getElementById('preco-tonelada').value = data.preco_tonelada;
+            document.getElementById('producao-estimada').value = data.producao_estimada;
+            
+            // Atualizar estado para edição
+            talhaoEditandoId = talhaoId;
+            document.querySelector('#talhao-form button[type="submit"]').textContent = 'Atualizar Talhão';
+            
+            // Rolar até o formulário
+            document.getElementById('talhao-form').scrollIntoView({ behavior: 'smooth' });
+            
+            mostrarMensagem('Editando talhão. Preencha os dados e clique em "Atualizar Talhão".', 'success');
+            
+        } catch (error) {
+            console.error('Erro ao carregar talhão para edição:', error);
+            mostrarMensagem('Erro ao carregar dados do talhão: ' + error.message, 'error');
+        }
     };
     
     window.excluirTalhao = async function(talhaoId) {
