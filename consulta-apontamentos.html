@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Apontamentos - CanaSystem</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">CanaSystem</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Apontamentos</a>
+                <a href="consulta-apontamentos.html" class="nav-link active">Consulta</a>
+                <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
+                <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
+                <a href="relatorios.html" class="nav-link">Relatórios</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div id="loading" class="card">
+                <div class="spinner"></div>
+                <p style="text-align: center;">Conectando ao banco de dados...</p>
+            </div>
+
+            <div id="content" style="display: none;">
+                <div class="card">
+                    <h2>Consulta de Apontamentos</h2>
+                    
+                    <form id="filtro-form" class="form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="data-inicio">Data Início</label>
+                                <input type="date" id="data-inicio">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="data-fim">Data Fim</label>
+                                <input type="date" id="data-fim">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="turma-filtro">Turma</label>
+                                <select id="turma-filtro">
+                                    <option value="">Todas as turmas</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="fazenda-filtro">Fazenda</label>
+                                <select id="fazenda-filtro">
+                                    <option value="">Todas as fazendas</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Filtrar</button>
+                            <button type="button" id="limpar-filtros" class="btn-secondary">Limpar Filtros</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card">
+                    <h2>Apontamentos</h2>
+                    <div id="apontamentos-list" class="table-container">
+                        <!-- Lista de apontamentos será carregada aqui -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="error-message" class="card" style="display: none; background-color: #f8d7da; color: #721c24;">
+                <h2>Erro de Conexão</h2>
+                <p>Não foi possível conectar ao banco de dados.</p>
+                <button onclick="location.reload()" class="btn-primary">Tentar Novamente</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal para edição de apontamento -->
+    <div id="modal-edicao" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Apontamento</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-edicao">
+                    <input type="hidden" id="apontamento-id">
+                    
+                    <div class="form-group">
+                        <label for="editar-data-corte">Data do Corte</label>
+                        <input type="date" id="editar-data-corte" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editar-turma">Turma</label>
+                        <select id="editar-turma" required>
+                            <option value="">Selecione a turma</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editar-fazenda">Fazenda</label>
+                        <select id="editar-fazenda" required>
+                            <option value="">Selecione a fazenda</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editar-talhao">Talhão</label>
+                        <select id="editar-talhao" required>
+                            <option value="">Selecione o talhão</option>
+                        </select>
+                    </div>
+                    
+                    <div id="cortes-container">
+                        <!-- Campos para edição dos cortes serão adicionados aqui -->
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Salvar Alterações</button>
+                        <button type="button" id="cancelar-edicao" class="btn-secondary">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
+
+        // Inicializar Supabase
+        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase inicializado para consulta de apontamentos');
+    </script>
+
+    <script src="js/consulta-apontamentos.js"></script>
+</body>
+</html>
