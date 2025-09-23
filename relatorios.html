@@ -6,6 +6,7 @@
     <title>Relatórios - CanaSystem</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/relatorios.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -52,9 +53,6 @@
                                 <label for="turma-relatorio">Turma</label>
                                 <select id="turma-relatorio">
                                     <option value="">Todas as turmas</option>
-                                    <option value="turma1">Turma 1</option>
-                                    <option value="turma2">Turma 2</option>
-                                    <option value="turma3">Turma 3</option>
                                 </select>
                             </div>
                             
@@ -92,9 +90,6 @@
                             <label for="turma-quinzena">Turma</label>
                             <select id="turma-quinzena" required>
                                 <option value="">Selecione a turma</option>
-                                <option value="turma1">Turma 1</option>
-                                <option value="turma2">Turma 2</option>
-                                <option value="turma3">Turma 3</option>
                             </select>
                         </div>
                         
@@ -119,12 +114,14 @@
     </main>
 
     <script>
-        // Configuração do Supabase
-        const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
-
+        // Configuração do Supabase (DEVE vir antes do relatorios.js)
+        const SUPABASE_CONFIG = {
+            URL: 'https://fwkybhfzfrovjausuqgn.supabase.co',
+            KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E'
+        };
+        
         // Inicializar Supabase
-        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.supabase = supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.KEY);
         console.log('Supabase inicializado para relatórios');
     </script>
 
