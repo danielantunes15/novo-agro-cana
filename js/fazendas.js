@@ -98,6 +98,85 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.querySelector('#talhao-form button[type="submit"]').textContent = 'Salvar Talhão';
     }
 
+    // Função para calcular preço por metro
+    function calcularPrecoPorMetro(talhaoData) {
+        // Fórmula: (preco_tonelada * producao_estimada) / (10000 / espacamento / 5)
+        const precoPorMetro = (talhaoData.preco_tonelada * talhaoData.producao_estimada) / (10000 / talhaoData.espacamento / 5);
+        return parseFloat(precoPorMetro.toFixed(4));
+    }
+
+    // Função para atualizar apontamentos quando alterar dados do talhão
+    async function atualizarApontamentosDoTalhao(talhaoId) {
+        try {
+            // Buscar dados atualizados do talhão
+            const { data: talhao, error: talhaoError } = await supabase
+                .from('talhoes')
+                .select('espacamento, preco_tonelada, producao_estimada')
+                .eq('id', talhaoId)
+                .single();
+                
+            if (talhaoError) throw talhaoError;
+            
+            // Calcular novo preço por metro
+            const novoPrecoPorMetro = calcularPrecoPorMetro(talhao);
+            
+            // Buscar todos os apontamentos deste talhão
+            const { data: apontamentos, error: apontamentosError } = await supabase
+                .from('apontamentos')
+                .select('id, preco_por_metro')
+                .eq('talhao_id', talhaoId);
+                
+            if (apontamentosError) throw apontamentosError;
+            
+            if (apontamentos && apontamentos.length > 0) {
+                let apontamentosAtualizados = 0;
+                let cortesAtualizados = 0;
+                
+                // Atualizar preço por metro nos apontamentos
+                for (const apontamento of apontamentos) {
+                    // Atualizar apontamento principal
+                    const { error: updateApontamentoError } = await supabase
+                        .from('apontamentos')
+                        .update({ preco_por_metro: novoPrecoPorMetro })
+                        .eq('id', apontamento.id);
+                        
+                    if (updateApontamentoError) throw updateApontamentoError;
+                    apontamentosAtualizados++;
+                    
+                    // Buscar cortes deste apontamento
+                    const { data: cortes, error: cortesError } = await supabase
+                        .from('cortes_funcionarios')
+                        .select('id, metros')
+                        .eq('apontamento_id', apontamento.id);
+                        
+                    if (cortesError) throw cortesError;
+                    
+                    // Atualizar valor dos cortes
+                    for (const corte of cortes) {
+                        const novoValor = corte.metros * novoPrecoPorMetro;
+                        
+                        const { error: updateCorteError } = await supabase
+                            .from('cortes_funcionarios')
+                            .update({ valor: novoValor })
+                            .eq('id', corte.id);
+                            
+                        if (updateCorteError) throw updateCorteError;
+                        cortesAtualizados++;
+                    }
+                }
+                
+                console.log(`✅ Atualizados ${apontamentosAtualizados} apontamentos e ${cortesAtualizados} cortes do talhão ${talhaoId}`);
+                return { apontamentosAtualizados, cortesAtualizados };
+            }
+            
+            return { apontamentosAtualizados: 0, cortesAtualizados: 0 };
+            
+        } catch (error) {
+            console.error('Erro ao atualizar apontamentos do talhão:', error);
+            throw error;
+        }
+    }
+
     // Função para salvar fazenda
     async function salvarFazenda(e) {
         e.preventDefault();
@@ -165,9 +244,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         try {
             let result;
+            let atualizandoTalhaoExistente = false;
             
             if (talhaoEditandoId) {
                 // Editar talhão existente
+                atualizandoTalhaoExistente = true;
                 const { data, error } = await supabase
                     .from('talhoes')
                     .update({
@@ -185,6 +266,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (error) throw error;
                 result = data;
                 mostrarMensagem('Talhão atualizado com sucesso!');
+                
+                // ATUALIZAR APONTAMENTOS EXISTENTES DESTE TALHÃO
+                try {
+                    const { apontamentosAtualizados, cortesAtualizados } = await atualizarApontamentosDoTalhao(talhaoEditandoId);
+                    if (apontamentosAtualizados > 0) {
+                        mostrarMensagem(`Talhão atualizado! ${apontamentosAtualizados} apontamentos e ${cortesAtualizados} cortes foram atualizados com os novos valores.`, 'success');
+                    }
+                } catch (updateError) {
+                    console.error('Aviso: Não foi possível atualizar apontamentos existentes:', updateError);
+                    mostrarMensagem('Talhão atualizado, mas houve um aviso ao atualizar apontamentos existentes.', 'error');
+                }
+                
             } else {
                 // Criar novo talhão
                 const { data, error } = await supabase
@@ -289,6 +382,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                     <th>Espaçamento (m)</th>
                                     <th>Preço/T (R$)</th>
                                     <th>Produção (t/ha)</th>
+                                    <th>Preço/m (R$)</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
@@ -296,6 +390,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     `;
                     
                     fazenda.talhoes.forEach(talhao => {
+                        const precoPorMetro = calcularPrecoPorMetro(talhao);
                         html += `
                             <tr>
                                 <td>${talhao.numero}</td>
@@ -303,6 +398,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 <td>${talhao.espacamento}</td>
                                 <td>R$ ${talhao.preco_tonelada.toFixed(2)}</td>
                                 <td>${talhao.producao_estimada.toFixed(2)}</td>
+                                <td>R$ ${precoPorMetro.toFixed(4)}</td>
                                 <td>
                                     <button class="btn-secondary" onclick="editarTalhao('${talhao.id}')">Editar</button>
                                     <button class="btn-remove" onclick="excluirTalhao('${talhao.id}')">Excluir</button>
