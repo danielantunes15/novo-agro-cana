@@ -256,8 +256,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         apontamentosList.innerHTML = html;
     }
 
+    // ✅ corrigido para exibir a data sem fuso horário
     function formatarData(data) {
-        return new Date(data).toLocaleDateString('pt-BR');
+        if (!data) return '';
+        return data.split('T')[0].split('-').reverse().join('/');
     }
 
     async function aplicarFiltros(e) {
@@ -426,6 +428,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const fazendaId = document.getElementById('editar-fazenda').value;
         const talhaoId = document.getElementById('editar-talhao').value;
         
+        // ✅ garantir formato YYYY-MM-DD sem fuso horário
+        const dataCorteISO = dataCorte.split('T')[0];
+        
         // Coletar metros dos cortes
         const cortes = [];
         const cortesItens = document.querySelectorAll('.corte-item');
@@ -450,7 +455,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { error: apontamentoError } = await supabase
                 .from('apontamentos')
                 .update({
-                    data_corte: dataCorte,
+                    data_corte: dataCorteISO, // ✅ corrigido
                     turma: turma,
                     fazenda_id: fazendaId,
                     talhao_id: talhaoId
