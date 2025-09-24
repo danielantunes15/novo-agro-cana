@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para carregar apontamentos recentes
+    // Função para carregar apontamentos recentes (CORRIGIDA DATA)
     async function carregarApontamentosRecentes() {
         try {
             const { data, error } = await supabase
@@ -385,9 +385,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             data.forEach(apontamento => {
                 apontamento.cortes_funcionarios.forEach(corte => {
+                    // CORRIGIDO: mostrar data sem fuso horário
+                    const dataFormatada = apontamento.data_corte.split('T')[0].split('-').reverse().join('/');
+                    
                     html += `
                         <tr>
-                            <td>${new Date(apontamento.data_corte).toLocaleDateString('pt-BR')}</td>
+                            <td>${dataFormatada}</td>
                             <td>${apontamento.turma}</td>
                             <td>${apontamento.fazendas.nome}</td>
                             <td>${apontamento.talhoes.numero}</td>
