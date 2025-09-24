@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         metros,
                         valor,
                         funcionario_id,
-                        funcionarios(nome, turma)
+                        funcionarios(nome, turmas(nome))
                     )
                 `)
                 .order('data_corte', { ascending: false });
@@ -232,7 +232,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <tbody>
         `;
         
-        // CORREÇÃO: Criar uma linha para cada funcionário em vez de agrupar
         apontamentos.forEach(apontamento => {
             apontamento.cortes_funcionarios.forEach(corte => {
                 html += `
@@ -241,7 +240,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <td>${apontamento.turma}</td>
                         <td>${apontamento.fazendas.nome}</td>
                         <td>${apontamento.talhoes.numero}</td>
-                        <td>${corte.funcionarios.nome} (${corte.funcionarios.turma})</td>
+                        <td>${corte.funcionarios.nome} (${corte.funcionarios.turmas?.nome || 'Sem turma'})</td>
                         <td>${corte.metros.toFixed(2)}</td>
                         <td>R$ ${corte.valor.toFixed(2)}</td>
                         <td>
@@ -299,7 +298,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         metros,
                         valor,
                         funcionario_id,
-                        funcionarios(nome, turma)
+                        funcionarios(nome, turmas(nome))
                     )
                 `)
                 .eq('id', apontamentoId)
@@ -400,7 +399,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Funcionário</label>
-                        <input type="text" value="${corte.funcionarios.nome} (${corte.funcionarios.turma})" readonly>
+                        <input type="text" value="${corte.funcionarios.nome} (${corte.funcionarios.turmas?.nome || 'Sem turma'})" readonly>
                     </div>
                     <div class="form-group">
                         <label>Metros Cortados</label>
