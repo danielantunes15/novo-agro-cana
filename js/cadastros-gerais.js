@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     const turmasList = document.getElementById('turmas-list');
     const turmaFuncionarioSelect = document.getElementById('turma-funcionario');
 
+    let funcionarioEditandoId = null;
+    let turmaEditandoId = null;
+
     // Máscaras para CPF e Telefone
     function aplicarMascaras() {
         const cpfInput = document.getElementById('cpf-funcionario');
@@ -101,6 +104,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         }, 5000);
     }
 
+    function limparFormularioFuncionario() {
+        funcionarioForm.reset();
+        funcionarioEditandoId = null;
+        document.querySelector('#funcionario-form button[type="submit"]').textContent = 'Cadastrar Funcionário';
+    }
+
+    function limparFormularioTurma() {
+        turmaForm.reset();
+        turmaEditandoId = null;
+        document.querySelector('#turma-form button[type="submit"]').textContent = 'Cadastrar Turma';
+    }
+
     async function salvarFuncionario(e) {
         e.preventDefault();
         
@@ -122,23 +137,46 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         try {
-            const { data, error } = await supabase
-                .from('funcionarios')
-                .insert([{
-                    nome: nome,
-                    cpf: cpf,
-                    data_nascimento: nascimento,
-                    telefone: telefone,
-                    funcao: funcao,
-                    turma: turmaId
-                }])
-                .select()
-                .single();
-                
-            if (error) throw error;
+            let resultado;
             
-            mostrarMensagem('Funcionário salvo com sucesso!');
-            funcionarioForm.reset();
+            if (funcionarioEditandoId) {
+                // Editar funcionário existente
+                resultado = await supabase
+                    .from('funcionarios')
+                    .update({
+                        nome: nome,
+                        cpf: cpf,
+                        data_nascimento: nascimento,
+                        telefone: telefone,
+                        funcao: funcao,
+                        turma: turmaId
+                    })
+                    .eq('id', funcionarioEditandoId)
+                    .select()
+                    .single();
+                    
+                mostrarMensagem('Funcionário atualizado com sucesso!');
+            } else {
+                // Criar novo funcionário
+                resultado = await supabase
+                    .from('funcionarios')
+                    .insert([{
+                        nome: nome,
+                        cpf: cpf,
+                        data_nascimento: nascimento,
+                        telefone: telefone,
+                        funcao: funcao,
+                        turma: turmaId
+                    }])
+                    .select()
+                    .single();
+                    
+                mostrarMensagem('Funcionário salvo com sucesso!');
+            }
+                
+            if (resultado.error) throw resultado.error;
+            
+            limparFormularioFuncionario();
             await carregarFuncionarios();
             
         } catch (error) {
@@ -159,19 +197,38 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         try {
-            const { data, error } = await supabase
-                .from('turmas')
-                .insert([{
-                    nome: nome,
-                    encarregado: encarregado
-                }])
-                .select()
-                .single();
-                
-            if (error) throw error;
+            let resultado;
             
-            mostrarMensagem('Turma salva com sucesso!');
-            turmaForm.reset();
+            if (turmaEditandoId) {
+                // Editar turma existente
+                resultado = await supabase
+                    .from('turmas')
+                    .update({
+                        nome: nome,
+                        encarregado: encarregado
+                    })
+                    .eq('id', turmaEditandoId)
+                    .select()
+                    .single();
+                    
+                mostrarMensagem('Turma atualizada com sucesso!');
+            } else {
+                // Criar nova turma
+                resultado = await supabase
+                    .from('turmas')
+                    .insert([{
+                        nome: nome,
+                        encarregado: encarregado
+                    }])
+                    .select()
+                    .single();
+                    
+                mostrarMensagem('Turma salva com sucesso!');
+            }
+                
+            if (resultado.error) throw resultado.error;
+            
+            limparFormularioTurma();
             await carregarTurmasParaSelect();
             await carregarTurmas();
             
@@ -334,7 +391,33 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Funções globais
     window.editarFuncionario = async function(id) {
-        mostrarMensagem('Funcionalidade de edição em desenvolvimento.', 'error');
+        try {
+            const { data: funcionario, error } = await supabase
+                .from('funcionarios')
+                .select('*')
+                .eq('id', id)
+                .single();
+                
+            if (error) throw error;
+            
+            // Preencher o formulário com os dados do funcionário
+            document.getElementById('nome-funcionario').value = funcionario.nome;
+            document.getElementById('cpf-funcionario').value = funcionario.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            document.getElementById('nascimento-funcionario').value = funcionario.data_nascimento;
+            document.getElementById('telefone-funcionario').value = funcionario.telefone ? funcionario.telefone.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3') : '';
+            document.getElementById('funcao-funcionario').value = funcionario.funcao;
+            document.getElementById('turma-funcionario').value = funcionario.turma;
+            
+            funcionarioEditandoId = id;
+            document.querySelector('#funcionario-form button[type="submit"]').textContent = 'Atualizar Funcionário';
+            
+            // Rolagem suave até o formulário
+            document.getElementById('funcionario-form').scrollIntoView({ behavior: 'smooth' });
+            
+        } catch (error) {
+            console.error('Erro ao carregar funcionário para edição:', error);
+            mostrarMensagem('Erro ao carregar dados do funcionário: ' + error.message, 'error');
+        }
     };
 
     window.excluirFuncionario = async function(id) {
@@ -358,11 +441,33 @@ document.addEventListener('DOMContentLoaded', async function() {
     };
 
     window.editarTurma = async function(id) {
-        mostrarMensagem('Funcionalidade de edição em desenvolvimento.', 'error');
+        try {
+            const { data: turma, error } = await supabase
+                .from('turmas')
+                .select('*')
+                .eq('id', id)
+                .single();
+                
+            if (error) throw error;
+            
+            // Preencher o formulário com os dados da turma
+            document.getElementById('nome-turma').value = turma.nome;
+            document.getElementById('encarregado-turma').value = turma.encarregado || '';
+            
+            turmaEditandoId = id;
+            document.querySelector('#turma-form button[type="submit"]').textContent = 'Atualizar Turma';
+            
+            // Rolagem suave até o formulário
+            document.getElementById('turma-form').scrollIntoView({ behavior: 'smooth' });
+            
+        } catch (error) {
+            console.error('Erro ao carregar turma para edição:', error);
+            mostrarMensagem('Erro ao carregar dados da turma: ' + error.message, 'error');
+        }
     };
 
     window.excluirTurma = async function(id) {
-        if (!confirm('Tem certeza que deseja excluir esta turma?')) return;
+        if (!confirm('Tem certeza que deseja excluir esta turma? Esta ação não poderá ser desfeita.')) return;
         
         try {
             const { error } = await supabase
@@ -380,5 +485,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.error('Erro ao excluir turma:', error);
             mostrarMensagem('Erro ao excluir turma: ' + error.message, 'error');
         }
+    };
+
+    // Botão cancelar edição (adicione este HTML nos formulários)
+    window.cancelarEdicaoFuncionario = function() {
+        limparFormularioFuncionario();
+        mostrarMensagem('Edição cancelada.');
+    };
+
+    window.cancelarEdicaoTurma = function() {
+        limparFormularioTurma();
+        mostrarMensagem('Edição cancelada.');
     };
 });
