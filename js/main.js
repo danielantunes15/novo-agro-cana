@@ -188,12 +188,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para carregar funcionários
+    // Função para carregar funcionários - CORRIGIDA
     async function carregarFuncionarios(selectElement) {
         try {
             const { data, error } = await supabase
                 .from('funcionarios')
-                .select('id, nome, turma')
+                .select(`
+                    id, 
+                    nome, 
+                    turmas(nome)
+                `)
                 .order('nome');
                 
             if (error) throw error;
@@ -202,13 +206,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             data.forEach(funcionario => {
                 const option = document.createElement('option');
                 option.value = funcionario.id;
-                // CORREÇÃO: Mostrar nome e turma em vez de nome e ID
-                option.textContent = `${funcionario.nome} (${funcionario.turma})`;
+                // CORREÇÃO: Mostrar nome e nome da turma em vez do ID
+                option.textContent = `${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
                 selectElement.appendChild(option);
             });
 
         } catch (error) {
             console.error('Erro ao carregar funcionários:', error);
+            // Fallback em caso de erro
+            selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
         }
     }
 
@@ -346,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     fazendas(nome),
                     talhoes(numero),
                     cortes_funcionarios(
-                        funcionarios(nome, turma),
+                        funcionarios(nome, turmas(nome)),
                         metros,
                         valor
                     )
@@ -377,7 +383,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <tbody>
             `;
             
-            // CORREÇÃO: Criar uma linha para cada funcionário em vez de agrupar
             data.forEach(apontamento => {
                 apontamento.cortes_funcionarios.forEach(corte => {
                     html += `
@@ -386,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <td>${apontamento.turma}</td>
                             <td>${apontamento.fazendas.nome}</td>
                             <td>${apontamento.talhoes.numero}</td>
-                            <td>${corte.funcionarios.nome} (${corte.funcionarios.turma})</td>
+                            <td>${corte.funcionarios.nome} (${corte.funcionarios.turmas?.nome || 'Sem turma'})</td>
                             <td>${corte.metros.toFixed(2)}</td>
                             <td>R$ ${corte.valor.toFixed(2)}</td>
                         </tr>
