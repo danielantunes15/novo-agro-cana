@@ -202,6 +202,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             data.forEach(funcionario => {
                 const option = document.createElement('option');
                 option.value = funcionario.id;
+                // CORREÇÃO: Mostrar nome e turma em vez de nome e ID
                 option.textContent = `${funcionario.nome} (${funcionario.turma})`;
                 selectElement.appendChild(option);
             });
@@ -345,7 +346,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     fazendas(nome),
                     talhoes(numero),
                     cortes_funcionarios(
-                        funcionarios(nome),
+                        funcionarios(nome, turma),
                         metros,
                         valor
                     )
@@ -368,30 +369,29 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <th>Turma</th>
                             <th>Fazenda</th>
                             <th>Talhão</th>
-                            <th>Funcionários</th>
-                            <th>Total (m)</th>
+                            <th>Funcionário</th>
+                            <th>Metros (m)</th>
                             <th>Valor (R$)</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
             
+            // CORREÇÃO: Criar uma linha para cada funcionário em vez de agrupar
             data.forEach(apontamento => {
-                const totalMetros = apontamento.cortes_funcionarios.reduce((sum, corte) => sum + corte.metros, 0);
-                const totalValor = apontamento.cortes_funcionarios.reduce((sum, corte) => sum + corte.valor, 0);
-                const funcionarios = apontamento.cortes_funcionarios.map(corte => corte.funcionarios.nome).join(', ');
-                
-                html += `
-                    <tr>
-                        <td>${new Date(apontamento.data_corte).toLocaleDateString('pt-BR')}</td>
-                        <td>${apontamento.turma}</td>
-                        <td>${apontamento.fazendas.nome}</td>
-                        <td>${apontamento.talhoes.numero}</td>
-                        <td>${funcionarios}</td>
-                        <td>${totalMetros.toFixed(2)}</td>
-                        <td>R$ ${totalValor.toFixed(2)}</td>
-                    </tr>
-                `;
+                apontamento.cortes_funcionarios.forEach(corte => {
+                    html += `
+                        <tr>
+                            <td>${new Date(apontamento.data_corte).toLocaleDateString('pt-BR')}</td>
+                            <td>${apontamento.turma}</td>
+                            <td>${apontamento.fazendas.nome}</td>
+                            <td>${apontamento.talhoes.numero}</td>
+                            <td>${corte.funcionarios.nome} (${corte.funcionarios.turma})</td>
+                            <td>${corte.metros.toFixed(2)}</td>
+                            <td>R$ ${corte.valor.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
             });
             
             html += '</tbody></table>';

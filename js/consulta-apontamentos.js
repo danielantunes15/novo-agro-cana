@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         metros,
                         valor,
                         funcionario_id,
-                        funcionarios(nome)
+                        funcionarios(nome, turma)
                     )
                 `)
                 .order('data_corte', { ascending: false });
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <th>Turma</th>
                         <th>Fazenda</th>
                         <th>Talhão</th>
-                        <th>Funcionários</th>
+                        <th>Funcionário</th>
                         <th>Metros</th>
                         <th>Valor (R$)</th>
                         <th>Ações</th>
@@ -232,26 +232,25 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <tbody>
         `;
         
+        // CORREÇÃO: Criar uma linha para cada funcionário em vez de agrupar
         apontamentos.forEach(apontamento => {
-            const totalMetros = apontamento.cortes_funcionarios.reduce((sum, corte) => sum + corte.metros, 0);
-            const totalValor = apontamento.cortes_funcionarios.reduce((sum, corte) => sum + corte.valor, 0);
-            const funcionarios = apontamento.cortes_funcionarios.map(corte => corte.funcionarios.nome).join(', ');
-            
-            html += `
-                <tr>
-                    <td>${formatarData(apontamento.data_corte)}</td>
-                    <td>${apontamento.turma}</td>
-                    <td>${apontamento.fazendas.nome}</td>
-                    <td>${apontamento.talhoes.numero}</td>
-                    <td>${funcionarios}</td>
-                    <td>${totalMetros.toFixed(2)}</td>
-                    <td>R$ ${totalValor.toFixed(2)}</td>
-                    <td>
-                        <button class="btn-secondary" onclick="editarApontamento('${apontamento.id}')">Editar</button>
-                        <button class="btn-remove" onclick="excluirApontamento('${apontamento.id}')">Excluir</button>
-                    </td>
-                </tr>
-            `;
+            apontamento.cortes_funcionarios.forEach(corte => {
+                html += `
+                    <tr>
+                        <td>${formatarData(apontamento.data_corte)}</td>
+                        <td>${apontamento.turma}</td>
+                        <td>${apontamento.fazendas.nome}</td>
+                        <td>${apontamento.talhoes.numero}</td>
+                        <td>${corte.funcionarios.nome} (${corte.funcionarios.turma})</td>
+                        <td>${corte.metros.toFixed(2)}</td>
+                        <td>R$ ${corte.valor.toFixed(2)}</td>
+                        <td>
+                            <button class="btn-secondary" onclick="editarApontamento('${apontamento.id}')">Editar</button>
+                            <button class="btn-remove" onclick="excluirApontamento('${apontamento.id}')">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            });
         });
         
         html += '</tbody></table>';
@@ -300,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         metros,
                         valor,
                         funcionario_id,
-                        funcionarios(nome)
+                        funcionarios(nome, turma)
                     )
                 `)
                 .eq('id', apontamentoId)
@@ -401,7 +400,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Funcionário</label>
-                        <input type="text" value="${corte.funcionarios.nome}" readonly>
+                        <input type="text" value="${corte.funcionarios.nome} (${corte.funcionarios.turma})" readonly>
                     </div>
                     <div class="form-group">
                         <label>Metros Cortados</label>
