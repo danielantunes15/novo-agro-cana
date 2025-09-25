@@ -1,3 +1,4 @@
+// main.js - VERSÃO CORRIGIDA - CONEXÃO E LOADING
 document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação usando o sistema customizado
     const usuario = window.sistemaAuth?.verificarAutenticacao();
@@ -10,116 +11,100 @@ document.addEventListener('DOMContentLoaded', async function() {
     const loadingElement = document.getElementById('loading');
     const contentElement = document.getElementById('content');
     const errorElement = document.getElementById('error-message');
-    const apontamentoForm = document.getElementById('apontamento-form');
-    const funcionariosContainer = document.getElementById('funcionarios-container');
-    const addFuncionarioBtn = document.getElementById('add-funcionario');
-    const apontamentosList = document.getElementById('apontamentos-list');
-    const fazendaSelect = document.getElementById('fazenda');
-    const talhaoSelect = document.getElementById('talhao');
 
     try {
         // Mostrar loading
-        loadingElement.style.display = 'block';
-        contentElement.style.display = 'none';
-        errorElement.style.display = 'none';
+        if (loadingElement) loadingElement.style.display = 'block';
+        if (contentElement) contentElement.style.display = 'none';
+        if (errorElement) errorElement.style.display = 'none';
+
+        console.log('Iniciando conexão com Supabase...');
 
         // Testar conexão com Supabase
         await testarConexaoSupabase();
         
         // Esconder loading e mostrar conteúdo
-        loadingElement.style.display = 'none';
-        contentElement.style.display = 'block';
+        if (loadingElement) loadingElement.style.display = 'none';
+        if (contentElement) contentElement.style.display = 'block';
 
-        // Carregar dados iniciais
-        await carregarFazendas();
-        await carregarFuncionariosIniciais();
-        await carregarApontamentosRecentes();
-        
-        // Configurar event listeners
-        addFuncionarioBtn.addEventListener('click', adicionarFuncionario);
-        apontamentoForm.addEventListener('submit', salvarApontamento);
-        fazendaSelect.addEventListener('change', carregarTalhoes);
-
-        // Adicionar botão de logout se não existir
-        adicionarBotaoLogout();
-
-        console.log('Sistema inicializado com sucesso!');
+        // Inicializar a aplicação
+        await inicializarAplicacao();
 
     } catch (error) {
         console.error('Erro na inicialização:', error);
-        loadingElement.style.display = 'none';
-        errorElement.style.display = 'block';
-    }
-
-    // Função para verificar autenticação
-    async function verificarAutenticacao() {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            window.location.href = 'login.html';
-            return false;
-        }
-        
-        // Verificar se o usuário está ativo
-        const user = session.user;
-        const { data: perfil } = await supabase
-            .from('profiles')
-            .select('ativo')
-            .eq('id', user.id)
-            .single();
-            
-        if (!perfil?.ativo) {
-            alert('Sua conta está desativada. Entre em contato com o administrador.');
-            await supabase.auth.signOut();
-            window.location.href = 'login.html';
-            return false;
-        }
-        
-        return true;
-    }
-
-    // Função para adicionar botão de logout na navegação
-    function adicionarBotaoLogout() {
-        const nav = document.querySelector('.nav');
-        const existingLogout = document.querySelector('#logout-btn');
-        
-        if (!existingLogout) {
-            const logoutBtn = document.createElement('button');
-            logoutBtn.id = 'logout-btn';
-            logoutBtn.className = 'btn-secondary';
-            logoutBtn.textContent = 'Sair';
-            logoutBtn.style.marginLeft = 'auto';
-            logoutBtn.addEventListener('click', logout);
-            
-            nav.appendChild(logoutBtn);
-        }
-    }
-
-    // Função para logout
-    async function logout() {
-        try {
-            await supabase.auth.signOut();
-            window.location.href = 'login.html';
-        } catch (error) {
-            console.error('Erro ao fazer logout:', error);
+        if (loadingElement) loadingElement.style.display = 'none';
+        if (errorElement) {
+            errorElement.style.display = 'block';
+            errorElement.innerHTML = `
+                <h2>Erro de Conexão</h2>
+                <p>Não foi possível conectar ao banco de dados. Verifique:</p>
+                <ul>
+                    <li>Sua conexão com a internet</li>
+                    <li>Se as credenciais do Supabase estão corretas</li>
+                    <li>Se as tabelas foram criadas no Supabase</li>
+                </ul>
+                <p>Detalhes do erro: ${error.message}</p>
+                <button onclick="location.reload()" class="btn-primary">Tentar Novamente</button>
+            `;
         }
     }
 
     // Função para testar conexão
     async function testarConexaoSupabase() {
         try {
+            console.log('Testando conexão com Supabase...');
+            
             const { data, error } = await supabase
                 .from('fazendas')
-                .select('*')
+                .select('count')
                 .limit(1);
                 
             if (error) {
+                console.error('Erro na conexão:', error);
                 throw new Error(`Erro Supabase: ${error.message}`);
             }
             
             console.log('✅ Conexão com Supabase estabelecida');
             return true;
         } catch (error) {
-            throw new Error(`Falha na conexão: ${error.message}`);
+            console.error('Falha na conexão Supabase:', error);
+            throw error;
+        }
+    }
+
+    // Função para inicializar a aplicação
+    async function inicializarAplicacao() {
+        const apontamentoForm = document.getElementById('apontamento-form');
+        const funcionariosContainer = document.getElementById('funcionarios-container');
+        const addFuncionarioBtn = document.getElementById('add-funcionario');
+        const apontamentosList = document.getElementById('apontamentos-list');
+        const fazendaSelect = document.getElementById('fazenda');
+        const talhaoSelect = document.getElementById('talhao');
+
+        try {
+            // Carregar dados iniciais
+            await carregarFazendas();
+            await carregarFuncionariosIniciais();
+            await carregarApontamentosRecentes();
+            
+            // Configurar event listeners
+            if (addFuncionarioBtn) {
+                addFuncionarioBtn.addEventListener('click', adicionarFuncionario);
+            }
+            
+            if (apontamentoForm) {
+                apontamentoForm.addEventListener('submit', salvarApontamento);
+            }
+            
+            if (fazendaSelect) {
+                fazendaSelect.addEventListener('change', carregarTalhoes);
+            }
+
+            console.log('✅ Aplicação inicializada com sucesso!');
+
+        } catch (error) {
+            console.error('Erro na inicialização da aplicação:', error);
+            throw error;
         }
     }
 
@@ -132,13 +117,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         const mensagemDiv = document.createElement('div');
         mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
         mensagemDiv.innerHTML = `
-            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px;">
+            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px; background-color: ${tipo === 'error' ? '#f8d7da' : '#d4edda'}; color: ${tipo === 'error' ? '#721c24' : '#155724'};">
                 ${mensagem}
                 <button onclick="this.parentElement.parentElement.remove()" style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
             </div>
         `;
         
-        document.querySelector('.main .container').prepend(mensagemDiv);
+        const container = document.querySelector('.main .container');
+        if (container) {
+            container.prepend(mensagemDiv);
+        }
 
         // Auto-remover após 5 segundos
         setTimeout(() => {
@@ -150,6 +138,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Função para adicionar campo de funcionário
     function adicionarFuncionario() {
+        const funcionariosContainer = document.getElementById('funcionarios-container');
+        if (!funcionariosContainer) return;
+        
         const funcionarioItem = document.createElement('div');
         funcionarioItem.className = 'funcionario-item';
         
@@ -173,12 +164,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Adicionar evento de remoção
         const removeBtn = funcionarioItem.querySelector('.btn-remove');
-        removeBtn.addEventListener('click', function() {
-            funcionarioItem.remove();
-        });
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                funcionarioItem.remove();
+            });
+        }
         
         // Carregar funcionários no select
-        carregarFuncionarios(funcionarioItem.querySelector('.funcionario-select'));
+        const selectElement = funcionarioItem.querySelector('.funcionario-select');
+        if (selectElement) {
+            carregarFuncionarios(selectElement);
+        }
     }
 
     // Função para carregar funcionários iniciais
@@ -191,6 +187,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Função para carregar fazendas
     async function carregarFazendas() {
+        const fazendaSelect = document.getElementById('fazenda');
+        if (!fazendaSelect) return;
+        
         try {
             const { data, error } = await supabase
                 .from('fazendas')
@@ -217,6 +216,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Função para carregar talhões
     async function carregarTalhoes() {
+        const fazendaSelect = document.getElementById('fazenda');
+        const talhaoSelect = document.getElementById('talhao');
+        
+        if (!fazendaSelect || !talhaoSelect) return;
+        
         const fazendaId = fazendaSelect.value;
         
         if (!fazendaId) {
@@ -250,8 +254,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para carregar funcionários - CORRIGIDA
+    // Função para carregar funcionários
     async function carregarFuncionarios(selectElement) {
+        if (!selectElement) return;
+        
         try {
             const { data, error } = await supabase
                 .from('funcionarios')
@@ -268,33 +274,40 @@ document.addEventListener('DOMContentLoaded', async function() {
             data.forEach(funcionario => {
                 const option = document.createElement('option');
                 option.value = funcionario.id;
-                // CORREÇÃO: Mostrar nome e nome da turma em vez do ID
                 option.textContent = `${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
                 selectElement.appendChild(option);
             });
 
         } catch (error) {
             console.error('Erro ao carregar funcionários:', error);
-            // Fallback em caso de erro
             selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
         }
     }
 
     // Função para calcular preço por metro
     function calcularPrecoPorMetro(talhaoData) {
+        if (!talhaoData) return 0;
+        
         // Fórmula: (preco_tonelada * producao_estimada) / (10000 / espacamento / 5)
         const precoPorMetro = (talhaoData.preco_tonelada * talhaoData.producao_estimada) / (10000 / talhaoData.espacamento / 5);
         return parseFloat(precoPorMetro.toFixed(4));
     }
 
-    // Função para salvar apontamento
+    // FUNÇÃO SALVAR APONTAMENTO - CORRIGIDA
     async function salvarApontamento(e) {
         e.preventDefault();
         
-        const dataCorte = document.getElementById('data-corte').value;
-        const turma = document.getElementById('turma').value;
-        const fazendaId = fazendaSelect.value;
-        const talhaoId = talhaoSelect.value;
+        const apontamentoForm = document.getElementById('apontamento-form');
+        const funcionariosContainer = document.getElementById('funcionarios-container');
+        
+        if (!apontamentoForm || !funcionariosContainer) return;
+        
+        const dataCorte = document.getElementById('data-corte')?.value;
+        const turma = document.getElementById('turma')?.value;
+        const fazendaSelect = document.getElementById('fazenda');
+        const talhaoSelect = document.getElementById('talhao');
+        const fazendaId = fazendaSelect?.value;
+        const talhaoId = talhaoSelect?.value;
         
         // Validar dados básicos
         if (!dataCorte || !turma || !fazendaId || !talhaoId) {
@@ -315,7 +328,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const funcionarioSelect = item.querySelector('.funcionario-select');
             const metrosInput = item.querySelector('.metros-input');
             
-            if (!funcionarioSelect.value || !metrosInput.value) {
+            if (!funcionarioSelect?.value || !metrosInput?.value) {
                 mostrarMensagem('Preencha todos os campos de funcionário.', 'error');
                 return;
             }
@@ -340,10 +353,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const precoPorMetro = calcularPrecoPorMetro(talhaoData);
             console.log('Preço por metro calculado:', precoPorMetro);
             
-            // Obter informações do usuário logado
-            const { data: { user } } = await supabase.auth.getUser();
+            const usuarioLogado = window.sistemaAuth?.verificarAutenticacao();
+            const usuarioId = usuarioLogado?.id || 'usuario-desconhecido';
             
-            // Inserir apontamento principal
+            console.log('Usuário logado:', usuarioLogado);
+            console.log('Usuario ID:', usuarioId);
+            
+            // Inserir apontamento - CORREÇÃO: usar created_at corretamente
             const { data: apontamento, error: apontamentoError } = await supabase
                 .from('apontamentos')
                 .insert({
@@ -352,13 +368,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                     fazenda_id: fazendaId,
                     talhao_id: talhaoId,
                     preco_por_metro: precoPorMetro,
-                    usuario_id: user.id, // Registrar quem criou o apontamento
-                    criado_em: new Date().toISOString()
+                    usuario_id: usuarioId
+                    // created_at será preenchido automaticamente pelo banco
                 })
                 .select()
                 .single();
                 
-            if (apontamentoError) throw apontamentoError;
+            if (apontamentoError) {
+                console.error('Erro ao salvar apontamento:', apontamentoError);
+                throw apontamentoError;
+            }
+            
+            console.log('Apontamento salvo com sucesso:', apontamento);
             
             // Preparar cortes dos funcionários
             const cortesComApontamentoId = cortes.map(corte => ({
@@ -407,8 +428,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para carregar apontamentos recentes (CORRIGIDA DATA)
+    // Função para carregar apontamentos recentes
     async function carregarApontamentosRecentes() {
+        const apontamentosList = document.getElementById('apontamentos-list');
+        if (!apontamentosList) return;
+        
         try {
             const { data, error } = await supabase
                 .from('apontamentos')
@@ -451,22 +475,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
             
             data.forEach(apontamento => {
-                apontamento.cortes_funcionarios.forEach(corte => {
-                    // CORRIGIDO: mostrar data sem fuso horário
-                    const dataFormatada = apontamento.data_corte.split('T')[0].split('-').reverse().join('/');
-                    
-                    html += `
-                        <tr>
-                            <td>${dataFormatada}</td>
-                            <td>${apontamento.turma}</td>
-                            <td>${apontamento.fazendas.nome}</td>
-                            <td>${apontamento.talhoes.numero}</td>
-                            <td>${corte.funcionarios.nome} (${corte.funcionarios.turmas?.nome || 'Sem turma'})</td>
-                            <td>${corte.metros.toFixed(2)}</td>
-                            <td>R$ ${corte.valor.toFixed(2)}</td>
-                        </tr>
-                    `;
-                });
+                if (apontamento.cortes_funcionarios && apontamento.cortes_funcionarios.length > 0) {
+                    apontamento.cortes_funcionarios.forEach(corte => {
+                        const dataFormatada = apontamento.data_corte ? apontamento.data_corte.split('T')[0].split('-').reverse().join('/') : 'N/A';
+                        
+                        html += `
+                            <tr>
+                                <td>${dataFormatada}</td>
+                                <td>${apontamento.turma || 'N/A'}</td>
+                                <td>${apontamento.fazendas?.nome || 'N/A'}</td>
+                                <td>${apontamento.talhoes?.numero || 'N/A'}</td>
+                                <td>${corte.funcionarios?.nome || 'N/A'} (${corte.funcionarios?.turmas?.nome || 'Sem turma'})</td>
+                                <td>${corte.metros ? corte.metros.toFixed(2) : '0.00'}</td>
+                                <td>R$ ${corte.valor ? corte.valor.toFixed(2) : '0.00'}</td>
+                            </tr>
+                        `;
+                    });
+                }
             });
             
             html += '</tbody></table>';
@@ -475,28 +500,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             console.error('Erro ao carregar apontamentos:', error);
             apontamentosList.innerHTML = '<p>Erro ao carregar apontamentos.</p>';
-        }
-    }
-});
-
-// Função global para logout (disponível em todas as páginas)
-async function logout() {
-    try {
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-        window.location.href = 'login.html';
-    } catch (error) {
-        console.error('Erro ao fazer logout:', error);
-        alert('Erro ao fazer logout: ' + error.message);
-    }
-}
-
-// Verificar autenticação em tempo real
-supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-        // Redirecionar para login se estiver em página protegida
-        if (!window.location.pathname.includes('login.html')) {
-            window.location.href = 'login.html';
         }
     }
 });
