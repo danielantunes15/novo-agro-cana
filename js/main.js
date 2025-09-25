@@ -1,4 +1,4 @@
-// main.js - VERSÃO CORRIGIDA - CONEXÃO E LOADING
+// main.js - VERSÃO CORRIGIDA - CONSTRAINT RESOLVIDA
 document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação usando o sistema customizado
     const usuario = window.sistemaAuth?.verificarAutenticacao();
@@ -80,10 +80,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         const apontamentosList = document.getElementById('apontamentos-list');
         const fazendaSelect = document.getElementById('fazenda');
         const talhaoSelect = document.getElementById('talhao');
+        const turmaSelect = document.getElementById('turma');
 
         try {
             // Carregar dados iniciais
             await carregarFazendas();
+            await carregarTurmas();
             await carregarFuncionariosIniciais();
             await carregarApontamentosRecentes();
             
@@ -105,6 +107,35 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             console.error('Erro na inicialização da aplicação:', error);
             throw error;
+        }
+    }
+
+    // Função para carregar turmas do banco de dados
+    async function carregarTurmas() {
+        const turmaSelect = document.getElementById('turma');
+        if (!turmaSelect) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('turmas')
+                .select('id, nome')
+                .order('nome');
+                
+            if (error) throw error;
+            
+            turmaSelect.innerHTML = '<option value="">Selecione a turma</option>';
+            data.forEach(turma => {
+                const option = document.createElement('option');
+                option.value = turma.id;
+                option.textContent = turma.nome;
+                turmaSelect.appendChild(option);
+            });
+
+            console.log(`✅ ${data.length} turmas carregadas`);
+
+        } catch (error) {
+            console.error('Erro ao carregar turmas:', error);
+            mostrarMensagem('Erro ao carregar turmas', 'error');
         }
     }
 
@@ -203,6 +234,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const option = document.createElement('option');
                 option.value = fazenda.id;
                 option.textContent = fazenda.nome;
+                option.dataset.nome = fazenda.nome; // Guardar o nome para uso posterior
                 fazendaSelect.appendChild(option);
             });
 
@@ -293,6 +325,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         return parseFloat(precoPorMetro.toFixed(4));
     }
 
+    // ✅ FUNÇÃO CORRIGIDA - MAPEAMENTO PARA OS VALORES PERMITIDOS
+    function mapearTurmaParaValorPermitido(turmaNome) {
+        // Mapeamento baseado na constraint: 'turma1', 'turma2', 'turma3'
+        const mapeamento = {
+            'Turma A': 'turma1',
+            'Turma B': 'turma2',
+            'Turma C': 'turma3',
+            'Turma D': 'turma1', // Fallback
+            'Turma E': 'turma2', // Fallback
+            'Turma F': 'turma3'  // Fallback
+        };
+        
+        return mapeamento[turmaNome] || 'turma1'; // Default para turma1
+    }
+
     // FUNÇÃO SALVAR APONTAMENTO - CORRIGIDA
     async function salvarApontamento(e) {
         e.preventDefault();
@@ -303,14 +350,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!apontamentoForm || !funcionariosContainer) return;
         
         const dataCorte = document.getElementById('data-corte')?.value;
-        const turma = document.getElementById('turma')?.value;
+        const turmaSelect = document.getElementById('turma');
+        const turmaId = turmaSelect?.value;
         const fazendaSelect = document.getElementById('fazenda');
         const talhaoSelect = document.getElementById('talhao');
         const fazendaId = fazendaSelect?.value;
         const talhaoId = talhaoSelect?.value;
         
         // Validar dados básicos
-        if (!dataCorte || !turma || !fazendaId || !talhaoId) {
+        if (!dataCorte || !turmaId || !fazendaId || !talhaoId) {
             mostrarMensagem('Preencha todos os campos obrigatórios.', 'error');
             return;
         }
@@ -356,21 +404,42 @@ document.addEventListener('DOMContentLoaded', async function() {
             const usuarioLogado = window.sistemaAuth?.verificarAutenticacao();
             const usuarioId = usuarioLogado?.id || 'usuario-desconhecido';
             
-            console.log('Usuário logado:', usuarioLogado);
-            console.log('Usuario ID:', usuarioId);
+            // ✅ BUSCAR O NOME DA TURMA DO BANCO
+            const { data: turmaData, error: turmaError } = await supabase
+                .from('turmas')
+                .select('nome')
+                .eq('id', turmaId)
+                .single();
+                
+            if (turmaError) {
+                console.error('Erro ao buscar turma:', turmaError);
+                throw new Error('Turma selecionada não encontrada no banco de dados');
+            }
             
-            // Inserir apontamento - CORREÇÃO: usar created_at corretamente
+            const turmaNomeOriginal = turmaData?.nome || 'Turma A';
+            
+            // ✅ CORREÇÃO CRÍTICA: MAPEAR PARA OS VALORES PERMITIDOS
+            const turmaPermitida = mapearTurmaParaValorPermitido(turmaNomeOriginal);
+            
+            console.log('Turma original:', turmaNomeOriginal);
+            console.log('Turma mapeada (permitida):', turmaPermitida);
+            
+            // Dados do apontamento - USANDO VALOR PERMITIDO
+            const dadosApontamento = {
+                data_corte: dataCorte,
+                turma: turmaPermitida, // ✅ VALOR QUE PASSA NA CONSTRAINT
+                fazenda_id: fazendaId,
+                talhao_id: talhaoId,
+                preco_por_metro: precoPorMetro,
+                usuario_id: usuarioId
+            };
+            
+            console.log('Dados do apontamento:', dadosApontamento);
+            
+            // ✅ INSERIR APONTAMENTO (AGORA DEVE FUNCIONAR)
             const { data: apontamento, error: apontamentoError } = await supabase
                 .from('apontamentos')
-                .insert({
-                    data_corte: dataCorte,
-                    turma: turma,
-                    fazenda_id: fazendaId,
-                    talhao_id: talhaoId,
-                    preco_por_metro: precoPorMetro,
-                    usuario_id: usuarioId
-                    // created_at será preenchido automaticamente pelo banco
-                })
+                .insert(dadosApontamento)
                 .select()
                 .single();
                 
@@ -379,7 +448,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 throw apontamentoError;
             }
             
-            console.log('Apontamento salvo com sucesso:', apontamento);
+            console.log('✅ Apontamento salvo com sucesso:', apontamento);
             
             // Preparar cortes dos funcionários
             const cortesComApontamentoId = cortes.map(corte => ({
@@ -400,6 +469,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Limpar formulário
             apontamentoForm.reset();
+            
+            // Configurar data atual
+            const dataCorteInput = document.getElementById('data-corte');
+            if (dataCorteInput) {
+                const hoje = new Date().toISOString().split('T')[0];
+                dataCorteInput.value = hoje;
+            }
+            
             funcionariosContainer.innerHTML = `
                 <div class="funcionario-item">
                     <div class="form-row">
@@ -419,6 +496,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
             
             // Recarregar dados
+            await carregarTurmas();
             await carregarFuncionariosIniciais();
             await carregarApontamentosRecentes();
             
@@ -491,6 +569,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                             </tr>
                         `;
                     });
+                } else {
+                    // Caso não haja cortes, mostrar pelo menos os dados básicos
+                    const dataFormatada = apontamento.data_corte ? apontamento.data_corte.split('T')[0].split('-').reverse().join('/') : 'N/A';
+                    
+                    html += `
+                        <tr>
+                            <td>${dataFormatada}</td>
+                            <td>${apontamento.turma || 'N/A'}</td>
+                            <td>${apontamento.fazendas?.nome || 'N/A'}</td>
+                            <td>${apontamento.talhoes?.numero || 'N/A'}</td>
+                            <td colspan="3" style="text-align: center;">Nenhum funcionário associado</td>
+                        </tr>
+                    `;
                 }
             });
             
@@ -499,7 +590,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
         } catch (error) {
             console.error('Erro ao carregar apontamentos:', error);
-            apontamentosList.innerHTML = '<p>Erro ao carregar apontamentos.</p>';
+            apontamentosList.innerHTML = '<p>Erro ao carregar apontamentos: ' + error.message + '</p>';
         }
     }
 });

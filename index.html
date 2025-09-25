@@ -11,19 +11,19 @@
 </head>
 <body>
     <header class="header">
-    <div class="container">
-      <h1 class="logo">AGRO CANA FORTE</h1>
-      <nav class="nav">
-        <a href="index.html" class="nav-link">Apontamentos</a>
-        <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
-        <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
-        <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
-        <a href="relatorios.html" class="nav-link">Relatórios</a>
-        <a href="gerenciamento-usuarios.html" class="nav-link">Usuários</a>
-        <button id="logout-btn" class="btn-logout">Sair</button>
-      </nav>
-    </div>
-  </header>
+        <div class="container">
+            <h1 class="logo">AGRO CANA FORTE</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Apontamentos</a>
+                <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
+                <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
+                <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
+                <a href="relatorios.html" class="nav-link">Relatórios</a>
+                <a href="gerenciamento-usuarios.html" class="nav-link">Usuários</a>
+                <button id="logout-btn" class="btn-logout">Sair</button>
+            </nav>
+        </div>
+    </header>
 
     <main class="main">
         <div class="container">
@@ -38,56 +38,61 @@
                     
                     <form id="apontamento-form" class="form">
                         <div class="form-group">
-                            <label for="data-corte">Data do Corte</label>
+                            <label for="data-corte">Data do Corte *</label>
                             <input type="date" id="data-corte" required>
                         </div>
                         
                         <div class="form-group">
-                            <label for="turma">Turma</label>
+                            <label for="turma">Turma *</label>
                             <select id="turma" required>
                                 <option value="">Selecione a turma</option>
-                                <option value="turma1">Turma 1</option>
-                                <option value="turma2">Turma 2</option>
-                                <option value="turma3">Turma 3</option>
+                                <!-- As turmas serão carregadas dinamicamente do banco -->
                             </select>
                         </div>
                         
                         <div class="form-group">
-                            <label for="fazenda">Fazenda</label>
+                            <label for="fazenda">Fazenda *</label>
                             <select id="fazenda" required>
                                 <option value="">Selecione a fazenda</option>
+                                <!-- As fazendas serão carregadas dinamicamente do banco -->
                             </select>
                         </div>
                         
                         <div class="form-group">
-                            <label for="talhao">Talhão</label>
+                            <label for="talhao">Talhão *</label>
                             <select id="talhao" required>
                                 <option value="">Selecione o talhão</option>
+                                <!-- Os talhões serão carregados conforme a fazenda selecionada -->
                             </select>
                         </div>
                         
-                        <div id="funcionarios-container">
-                            <div class="funcionario-item">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>Funcionário</label>
-                                        <select class="funcionario-select" required>
-                                            <option value="">Selecione o funcionário</option>
-                                        </select>
+                        <div class="funcionarios-section">
+                            <h3>Funcionários</h3>
+                            <div id="funcionarios-container">
+                                <div class="funcionario-item">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Funcionário *</label>
+                                            <select class="funcionario-select" required>
+                                                <option value="">Selecione o funcionário</option>
+                                                <!-- Os funcionários serão carregados dinamicamente do banco -->
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Metros Cortados *</label>
+                                            <input type="number" class="metros-input" step="0.01" min="0" required placeholder="0.00">
+                                        </div>
+                                        <button type="button" class="btn-remove" style="display: none;">×</button>
                                     </div>
-                                    <div class="form-group">
-                                        <label>Metros Cortados</label>
-                                        <input type="number" class="metros-input" step="0.01" min="0" required>
-                                    </div>
-                                    <button type="button" class="btn-remove" style="display: none;">×</button>
                                 </div>
                             </div>
+                            
+                            <button type="button" id="add-funcionario" class="btn-secondary">+ Adicionar Funcionário</button>
                         </div>
-                        
-                        <button type="button" id="add-funcionario" class="btn-secondary">+ Adicionar Funcionário</button>
                         
                         <div class="form-actions">
                             <button type="submit" class="btn-primary">Salvar Apontamento</button>
+                            <button type="button" id="limpar-form" class="btn-secondary">Limpar Formulário</button>
                         </div>
                     </form>
                 </div>
@@ -95,7 +100,7 @@
                 <div class="card">
                     <h2>Apontamentos Recentes</h2>
                     <div id="apontamentos-list" class="table-container">
-                        <!-- Lista de apontamentos será carregada aqui -->
+                        <p>Carregando apontamentos...</p>
                     </div>
                 </div>
             </div>
@@ -114,45 +119,212 @@
     </main>
 
     <script>
-    // Configuração do Supabase
-    const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
 
-    // Inicializar Supabase
-    window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // Verificar autenticação
-    document.addEventListener('DOMContentLoaded', function() {
-        if (window.sistemaAuth && !window.sistemaAuth.requerAutenticacao()) {
-            return;
-        }
-    });
-</script>
-<script>
-// Correção imediata para o botão Sair
-document.addEventListener('DOMContentLoaded', function() {
-    const logoutBtn = document.getElementById('logout-btn');
-    
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Usar o sistema de autenticação customizado
-            if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
-                window.sistemaAuth.fazerLogout();
-            } 
-            // Fallback: redirecionamento direto
-            else {
-                localStorage.removeItem('usuarioLogado');
-                window.location.href = 'login.html';
+        // Inicializar Supabase
+        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Configurar data atual como padrão
+        document.addEventListener('DOMContentLoaded', function() {
+            const dataCorteInput = document.getElementById('data-corte');
+            if (dataCorteInput) {
+                const hoje = new Date().toISOString().split('T')[0];
+                dataCorteInput.value = hoje;
             }
         });
-    }
-});
-</script>
+    </script>
 
-<!-- Adicione este script após o supabase -->
-<script src="js/auth.js"></script>
+    <script>
+        // Correção imediata para o botão Sair
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Usar o sistema de autenticação customizado
+                    if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
+                        window.sistemaAuth.fazerLogout();
+                    } 
+                    // Fallback: redirecionamento direto
+                    else {
+                        localStorage.removeItem('usuarioLogado');
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+
+            // Botão para limpar formulário
+            const limparFormBtn = document.getElementById('limpar-form');
+            if (limparFormBtn) {
+                limparFormBtn.addEventListener('click', function() {
+                    const apontamentoForm = document.getElementById('apontamento-form');
+                    const funcionariosContainer = document.getElementById('funcionarios-container');
+                    
+                    if (apontamentoForm) {
+                        apontamentoForm.reset();
+                        
+                        // Configurar data atual novamente
+                        const dataCorteInput = document.getElementById('data-corte');
+                        if (dataCorteInput) {
+                            const hoje = new Date().toISOString().split('T')[0];
+                            dataCorteInput.value = hoje;
+                        }
+                    }
+                    
+                    if (funcionariosContainer) {
+                        funcionariosContainer.innerHTML = `
+                            <div class="funcionario-item">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Funcionário *</label>
+                                        <select class="funcionario-select" required>
+                                            <option value="">Selecione o funcionário</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Metros Cortados *</label>
+                                        <input type="number" class="metros-input" step="0.01" min="0" required placeholder="0.00">
+                                    </div>
+                                    <button type="button" class="btn-remove" style="display: none;">×</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Recarregar funcionários no primeiro select
+                        const primeiroSelect = funcionariosContainer.querySelector('.funcionario-select');
+                        if (primeiroSelect) {
+                            // Esta função será definida no main.js
+                            if (typeof carregarFuncionarios === 'function') {
+                                carregarFuncionarios(primeiroSelect);
+                            }
+                        }
+                    }
+                    
+                    // Mostrar mensagem de sucesso
+                    if (typeof mostrarMensagem === 'function') {
+                        mostrarMensagem('Formulário limpo com sucesso!');
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Adicione este script após o supabase -->
+    <script src="js/auth.js"></script>
     <script src="js/main.js"></script>
+
+    <style>
+        .funcionarios-section {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .funcionarios-section h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: #495057;
+            font-size: 1.2rem;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 0.5rem;
+        }
+
+        .funcionario-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .funcionario-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-remove {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 1rem;
+        }
+
+        .btn-remove:hover {
+            background-color: #c82333;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-start;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        @media (max-width: 768px) {
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .form-row {
+                flex-direction: column;
+            }
+            
+            .btn-remove {
+                margin-left: 0;
+                margin-top: 0.5rem;
+                align-self: flex-start;
+            }
+        }
+
+        /* Estilos para mensagens de alerta */
+        .alert-message {
+            margin: 1rem 0;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Melhorias visuais para os selects */
+        select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        select:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+    </style>
 </body>
 </html>
