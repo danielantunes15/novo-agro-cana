@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Apontamento - Corte de Cana</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/mobile.css">
+    <link rel="stylesheet" href="css/apontamentos.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -14,7 +13,7 @@
         <div class="container">
             <h1 class="logo">AGRO CANA FORTE</h1>
             <nav class="nav">
-                <a href="index.html" class="nav-link">Apontamentos</a>
+                <a href="index.html" class="nav-link active">Apontamentos</a>
                 <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
                 <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
                 <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
@@ -46,7 +45,6 @@
                             <label for="turma">Turma *</label>
                             <select id="turma" required>
                                 <option value="">Selecione a turma</option>
-                                <!-- As turmas serão carregadas dinamicamente do banco -->
                             </select>
                         </div>
                         
@@ -54,7 +52,6 @@
                             <label for="fazenda">Fazenda *</label>
                             <select id="fazenda" required>
                                 <option value="">Selecione a fazenda</option>
-                                <!-- As fazendas serão carregadas dinamicamente do banco -->
                             </select>
                         </div>
                         
@@ -62,7 +59,6 @@
                             <label for="talhao">Talhão *</label>
                             <select id="talhao" required>
                                 <option value="">Selecione o talhão</option>
-                                <!-- Os talhões serão carregados conforme a fazenda selecionada -->
                             </select>
                         </div>
                         
@@ -75,24 +71,23 @@
                                             <label>Funcionário *</label>
                                             <select class="funcionario-select" required>
                                                 <option value="">Selecione o funcionário</option>
-                                                <!-- Os funcionários serão carregados dinamicamente do banco -->
                                             </select>
                                         </div>
                                         <div class="form-group">
                                             <label>Metros Cortados *</label>
                                             <input type="number" class="metros-input" step="0.01" min="0" required placeholder="0.00">
                                         </div>
-                                        <button type="button" class="btn-remove" style="display: none;">×</button>
+                                        <button type="button" class="btn btn-danger btn-remove" style="display: none;">×</button>
                                     </div>
                                 </div>
                             </div>
                             
-                            <button type="button" id="add-funcionario" class="btn-secondary">+ Adicionar Funcionário</button>
+                            <button type="button" id="add-funcionario" class="btn btn-secondary">+ Adicionar Funcionário</button>
                         </div>
                         
                         <div class="form-actions">
-                            <button type="submit" class="btn-primary">Salvar Apontamento</button>
-                            <button type="button" id="limpar-form" class="btn-secondary">Limpar Formulário</button>
+                            <button type="submit" class="btn btn-primary">Salvar Apontamento</button>
+                            <button type="button" id="limpar-form" class="btn btn-secondary">Limpar Formulário</button>
                         </div>
                     </form>
                 </div>
@@ -113,7 +108,7 @@
                     <li>Se as credenciais do Supabase estão corretas</li>
                     <li>Se as tabelas foram criadas no Supabase</li>
                 </ul>
-                <button onclick="location.reload()" class="btn-primary">Tentar Novamente</button>
+                <button onclick="location.reload()" class="btn btn-primary">Tentar Novamente</button>
             </div>
         </div>
     </main>
@@ -136,8 +131,11 @@
         });
     </script>
 
+    <script src="js/auth.js"></script>
+    <script src="js/main.js"></script>
+
     <script>
-        // Correção imediata para o botão Sair
+        // Correção para o botão Sair
         document.addEventListener('DOMContentLoaded', function() {
             const logoutBtn = document.getElementById('logout-btn');
             
@@ -145,12 +143,9 @@
                 logoutBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     
-                    // Usar o sistema de autenticação customizado
                     if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
                         window.sistemaAuth.fazerLogout();
-                    } 
-                    // Fallback: redirecionamento direto
-                    else {
+                    } else {
                         localStorage.removeItem('usuarioLogado');
                         window.location.href = 'login.html';
                     }
@@ -189,142 +184,14 @@
                                         <label>Metros Cortados *</label>
                                         <input type="number" class="metros-input" step="0.01" min="0" required placeholder="0.00">
                                     </div>
-                                    <button type="button" class="btn-remove" style="display: none;">×</button>
+                                    <button type="button" class="btn btn-danger btn-remove" style="display: none;">×</button>
                                 </div>
                             </div>
                         `;
-                        
-                        // Recarregar funcionários no primeiro select
-                        const primeiroSelect = funcionariosContainer.querySelector('.funcionario-select');
-                        if (primeiroSelect) {
-                            // Esta função será definida no main.js
-                            if (typeof carregarFuncionarios === 'function') {
-                                carregarFuncionarios(primeiroSelect);
-                            }
-                        }
-                    }
-                    
-                    // Mostrar mensagem de sucesso
-                    if (typeof mostrarMensagem === 'function') {
-                        mostrarMensagem('Formulário limpo com sucesso!');
                     }
                 });
             }
         });
     </script>
-
-    <!-- Adicione este script após o supabase -->
-    <script src="js/auth.js"></script>
-    <script src="js/main.js"></script>
-
-    <style>
-        .funcionarios-section {
-            margin: 2rem 0;
-            padding: 1.5rem;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-
-        .funcionarios-section h3 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            color: #495057;
-            font-size: 1.2rem;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 0.5rem;
-        }
-
-        .funcionario-item {
-            margin-bottom: 1rem;
-            padding: 1rem;
-            background-color: white;
-            border-radius: 6px;
-            border: 1px solid #dee2e6;
-        }
-
-        .funcionario-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .btn-remove {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 1rem;
-        }
-
-        .btn-remove:hover {
-            background-color: #c82333;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-start;
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid #dee2e6;
-        }
-
-        @media (max-width: 768px) {
-            .form-actions {
-                flex-direction: column;
-            }
-            
-            .form-row {
-                flex-direction: column;
-            }
-            
-            .btn-remove {
-                margin-left: 0;
-                margin-top: 0.5rem;
-                align-self: flex-start;
-            }
-        }
-
-        /* Estilos para mensagens de alerta */
-        .alert-message {
-            margin: 1rem 0;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Melhorias visuais para os selects */
-        select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 0.5rem center;
-            background-repeat: no-repeat;
-            background-size: 1.5em 1.5em;
-            padding-right: 2.5rem;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        select:focus {
-            border-color: #007bff;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-        }
-    </style>
 </body>
 </html>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logs de Acesso - AGRO CANA FORTE</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/logs.css">
 </head>
 <body>
     <header class="header">
@@ -58,8 +58,10 @@
                             </select>
                         </div>
                     </div>
-                    <button id="apply-filters" class="btn-primary">Aplicar Filtros</button>
-                    <button id="reset-filters" class="btn-secondary">Limpar</button>
+                    <div class="form-actions">
+                        <button id="apply-filters" class="btn btn-primary">Aplicar Filtros</button>
+                        <button id="reset-filters" class="btn btn-secondary">Limpar</button>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -83,9 +85,9 @@
                 </div>
 
                 <div class="pagination">
-                    <button id="prev-page" class="btn-secondary">Anterior</button>
+                    <button id="prev-page" class="btn btn-secondary">Anterior</button>
                     <span id="page-info">Página 1 de 1</span>
-                    <button id="next-page" class="btn-secondary">Próxima</button>
+                    <button id="next-page" class="btn btn-secondary">Próxima</button>
                 </div>
             </div>
         </div>
@@ -94,5 +96,25 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-client.js"></script>
     <script src="js/gerenciamento-logs.js"></script>
+
+    <script>
+        // Correção para o botão Sair
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
+                        window.sistemaAuth.fazerLogout();
+                    } else {
+                        localStorage.removeItem('usuarioLogado');
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

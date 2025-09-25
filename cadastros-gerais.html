@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastros Gerais - CanaSystem</title>
+    <title>Cadastros Gerais - AGRO CANA FORTE</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/mobile.css">
+    <link rel="stylesheet" href="css/cadastros-gerais.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -17,13 +16,14 @@
                 <a href="index.html" class="nav-link">Apontamentos</a>
                 <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
                 <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
-                <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
+                <a href="cadastros-gerais.html" class="nav-link active">Cadastros</a>
                 <a href="relatorios-completos.html" class="nav-link">Relatórios</a>
                 <a href="gerenciamento-usuarios.html" class="nav-link">Usuários</a>
                 <button id="logout-btn" class="btn-logout">Sair</button>
             </nav>
         </div>
     </header>
+
     <main class="main">
         <div class="container">
             <div id="loading" class="card">
@@ -40,7 +40,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="nome-funcionario">Nome Completo *</label>
-                                <input type="text" id="nome-funcionario" required>
+                                <input type="text" id="nome-funcionario" required placeholder="Digite o nome completo">
                             </div>
                             <div class="form-group">
                                 <label for="cpf-funcionario">CPF *</label>
@@ -67,6 +67,8 @@
                                     <option value="cortador">Cortador de Cana</option>
                                     <option value="apontador">Apontador</option>
                                     <option value="fiscal">Fiscal de Corte</option>
+                                    <option value="motorista">Motorista</option>
+                                    <option value="encarregado">Encarregado</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -78,7 +80,8 @@
                         </div>
                         
                         <div class="form-actions">
-                            <button type="submit" class="btn-primary">Salvar Funcionário</button>
+                            <button type="submit" class="btn btn-primary">Salvar Funcionário</button>
+                            <button type="button" id="limpar-funcionario" class="btn btn-secondary">Limpar</button>
                         </div>
                     </form>
                 </div>
@@ -99,8 +102,14 @@
                             </div>
                         </div>
                         
+                        <div class="form-group">
+                            <label for="observacao-turma">Observações</label>
+                            <textarea id="observacao-turma" rows="3" placeholder="Observações sobre a turma"></textarea>
+                        </div>
+                        
                         <div class="form-actions">
-                            <button type="submit" class="btn-primary">Salvar Turma</button>
+                            <button type="submit" class="btn btn-primary">Salvar Turma</button>
+                            <button type="button" id="limpar-turma" class="btn btn-secondary">Limpar</button>
                         </div>
                     </form>
                 </div>
@@ -108,23 +117,69 @@
                 <!-- Lista de Funcionários -->
                 <div class="card">
                     <h2>Funcionários Cadastrados</h2>
-                    <div id="funcionarios-list" class="table-container"></div>
+                    <div id="funcionarios-list" class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>CPF</th>
+                                    <th>Função</th>
+                                    <th>Turma</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-funcionarios">
+                                <tr>
+                                    <td colspan="6" style="text-align: center;">Carregando funcionários...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Lista de Turmas -->
                 <div class="card">
                     <h2>Turmas Cadastradas</h2>
-                    <div id="turmas-list" class="table-container"></div>
+                    <div id="turmas-list" class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Encarregado</th>
+                                    <th>Funcionários</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-turmas">
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">Carregando turmas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
             <div id="error-message" class="card" style="display: none; background-color: #f8d7da; color: #721c24;">
                 <h2>Erro de Conexão</h2>
                 <p>Não foi possível conectar ao banco de dados.</p>
-                <button onclick="location.reload()" class="btn-primary">Tentar Novamente</button>
+                <button onclick="location.reload()" class="btn btn-primary">Tentar Novamente</button>
             </div>
         </div>
     </main>
+
+    <!-- Modal para edição -->
+    <div id="modal-edicao" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modal-titulo">Editar</h3>
+            <div id="modal-conteudo">
+                <!-- Conteúdo será preenchido via JavaScript -->
+            </div>
+        </div>
+    </div>
 
     <script>
         const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
@@ -134,28 +189,67 @@
     </script>
 
     <script src="js/cadastros-gerais.js"></script>
-<script>
-// Correção imediata para o botão Sair
-document.addEventListener('DOMContentLoaded', function() {
-    const logoutBtn = document.getElementById('logout-btn');
-    
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Usar o sistema de autenticação customizado
-            if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
-                window.sistemaAuth.fazerLogout();
-            } 
-            // Fallback: redirecionamento direto
-            else {
-                localStorage.removeItem('usuarioLogado');
-                window.location.href = 'login.html';
-            }
-        });
-    }
-});
-</script>
 
+    <script>
+        // Correção para o botão Sair
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
+                        window.sistemaAuth.fazerLogout();
+                    } else {
+                        localStorage.removeItem('usuarioLogado');
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+
+            // Funcionalidade do modal
+            const modal = document.getElementById('modal-edicao');
+            const closeBtn = document.querySelector('.close');
+
+            function openModal() {
+                modal.style.display = 'block';
+            }
+
+            function closeModal() {
+                modal.style.display = 'none';
+            }
+
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Botões de limpar formulário
+            const limparFuncionarioBtn = document.getElementById('limpar-funcionario');
+            const limparTurmaBtn = document.getElementById('limpar-turma');
+
+            if (limparFuncionarioBtn) {
+                limparFuncionarioBtn.addEventListener('click', function() {
+                    document.getElementById('funcionario-form').reset();
+                });
+            }
+
+            if (limparTurmaBtn) {
+                limparTurmaBtn.addEventListener('click', function() {
+                    document.getElementById('turma-form').reset();
+                });
+            }
+
+            // Simulação de carregamento
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            }, 1500);
+        });
+    </script>
 </body>
 </html>

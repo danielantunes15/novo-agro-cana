@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Fazendas - CanaSystem</title>
+    <title>Cadastro de Fazendas - AGRO CANA FORTE</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/mobile.css">
+    <link rel="stylesheet" href="css/cadastro-fazendas.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -16,7 +15,7 @@
             <nav class="nav">
                 <a href="index.html" class="nav-link">Apontamentos</a>
                 <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
-                <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
+                <a href="cadastro-fazendas.html" class="nav-link active">Fazendas</a>
                 <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
                 <a href="relatorios-completos.html" class="nav-link">Relatórios</a>
                 <a href="gerenciamento-usuarios.html" class="nav-link">Usuários</a>
@@ -38,12 +37,23 @@
                     
                     <form id="fazenda-form" class="form">
                         <div class="form-group">
-                            <label for="nome-fazenda">Nome da Fazenda</label>
-                            <input type="text" id="nome-fazenda" required>
+                            <label for="nome-fazenda">Nome da Fazenda *</label>
+                            <input type="text" id="nome-fazenda" required placeholder="Digite o nome da fazenda">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="proprietario-fazenda">Proprietário</label>
+                            <input type="text" id="proprietario-fazenda" placeholder="Nome do proprietário">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="telefone-fazenda">Telefone de Contato</label>
+                            <input type="text" id="telefone-fazenda" placeholder="(00) 00000-0000">
                         </div>
                         
                         <div class="form-actions">
-                            <button type="submit" class="btn-primary">Salvar Fazenda</button>
+                            <button type="submit" class="btn btn-primary">Salvar Fazenda</button>
+                            <button type="button" id="limpar-fazenda" class="btn btn-secondary">Limpar</button>
                         </div>
                     </form>
                 </div>
@@ -53,7 +63,7 @@
                     
                     <form id="talhao-form" class="form">
                         <div class="form-group">
-                            <label for="fazenda-talhao">Fazenda</label>
+                            <label for="fazenda-talhao">Fazenda *</label>
                             <select id="fazenda-talhao" required>
                                 <option value="">Selecione a fazenda</option>
                             </select>
@@ -61,35 +71,36 @@
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="numero-talhao">Número do Talhão</label>
-                                <input type="number" id="numero-talhao" min="1" required>
+                                <label for="numero-talhao">Número do Talhão *</label>
+                                <input type="number" id="numero-talhao" min="1" required placeholder="Ex: 1">
                             </div>
                             
                             <div class="form-group">
-                                <label for="area-talhao">Área (hectares)</label>
-                                <input type="number" id="area-talhao" step="0.01" min="0.01" required>
+                                <label for="area-talhao">Área (hectares) *</label>
+                                <input type="number" id="area-talhao" step="0.01" min="0.01" required placeholder="Ex: 10.5">
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="espacamento-talhao">Espaçamento (metros)</label>
-                                <input type="number" id="espacamento-talhao" step="0.01" min="0.5" required>
+                                <label for="espacamento-talhao">Espaçamento (metros) *</label>
+                                <input type="number" id="espacamento-talhao" step="0.01" min="0.5" required placeholder="Ex: 1.5">
                             </div>
                             
                             <div class="form-group">
-                                <label for="preco-tonelada">Preço por Tonelada (R$)</label>
+                                <label for="preco-tonelada">Preço por Tonelada (R$) *</label>
                                 <input type="number" id="preco-tonelada" step="0.01" min="0" value="10.00" required>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label for="producao-estimada">Produção Estimada (t/ha)</label>
-                            <input type="number" id="producao-estimada" step="0.01" min="0" value="100.00" required>
+                            <input type="number" id="producao-estimada" step="0.01" min="0" value="100.00" placeholder="Produção estimada por hectare">
                         </div>
                         
                         <div class="form-actions">
-                            <button type="submit" class="btn-primary">Salvar Talhão</button>
+                            <button type="submit" class="btn btn-primary">Salvar Talhão</button>
+                            <button type="button" id="limpar-talhao" class="btn btn-secondary">Limpar</button>
                         </div>
                     </form>
                 </div>
@@ -97,7 +108,22 @@
                 <div class="card">
                     <h2>Fazendas e Talhões Cadastrados</h2>
                     <div id="fazendas-list" class="table-container">
-                        <!-- Lista de fazendas será carregada aqui -->
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fazenda</th>
+                                    <th>Proprietário</th>
+                                    <th>Talhões</th>
+                                    <th>Área Total</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-fazendas">
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">Carregando fazendas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -105,10 +131,21 @@
             <div id="error-message" class="card" style="display: none; background-color: #f8d7da; color: #721c24;">
                 <h2>Erro de Conexão</h2>
                 <p>Não foi possível conectar ao banco de dados.</p>
-                <button onclick="location.reload()" class="btn-primary">Tentar Novamente</button>
+                <button onclick="location.reload()" class="btn btn-primary">Tentar Novamente</button>
             </div>
         </div>
     </main>
+
+    <!-- Modal para detalhes dos talhões -->
+    <div id="modal-talhoes" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Talhões da Fazenda</h3>
+            <div id="detalhes-talhoes" class="table-container">
+                <!-- Conteúdo será preenchido via JavaScript -->
+            </div>
+        </div>
+    </div>
 
     <script>
         // Configuração do Supabase
@@ -117,32 +154,70 @@
 
         // Inicializar Supabase
         window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('Supabase inicializado para cadastro de fazendas');
     </script>
 
     <script src="js/fazendas.js"></script>
-<script>
-// Correção imediata para o botão Sair
-document.addEventListener('DOMContentLoaded', function() {
-    const logoutBtn = document.getElementById('logout-btn');
-    
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Usar o sistema de autenticação customizado
-            if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
-                window.sistemaAuth.fazerLogout();
-            } 
-            // Fallback: redirecionamento direto
-            else {
-                localStorage.removeItem('usuarioLogado');
-                window.location.href = 'login.html';
-            }
-        });
-    }
-});
-</script>
 
+    <script>
+        // Correção para o botão Sair
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
+                        window.sistemaAuth.fazerLogout();
+                    } else {
+                        localStorage.removeItem('usuarioLogado');
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+
+            // Funcionalidade do modal
+            const modal = document.getElementById('modal-talhoes');
+            const closeBtn = document.querySelector('.close');
+
+            function openModal() {
+                modal.style.display = 'block';
+            }
+
+            function closeModal() {
+                modal.style.display = 'none';
+            }
+
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Botões de limpar formulário
+            const limparFazendaBtn = document.getElementById('limpar-fazenda');
+            const limparTalhaoBtn = document.getElementById('limpar-talhao');
+
+            if (limparFazendaBtn) {
+                limparFazendaBtn.addEventListener('click', function() {
+                    document.getElementById('fazenda-form').reset();
+                });
+            }
+
+            if (limparTalhaoBtn) {
+                limparTalhaoBtn.addEventListener('click', function() {
+                    document.getElementById('talhao-form').reset();
+                });
+            }
+
+            // Simulação de carregamento
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            }, 1500);
+        });
+    </script>
 </body>
 </html>
