@@ -1,6 +1,15 @@
 // js/gerenciamento-usuarios.js
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se o usuário atual é administrador
+    const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || '{}');
+    
+    if (!usuarioLogado || usuarioLogado.tipo !== 'admin') {
+        // Se não for administrador, não carregar a funcionalidade
+        console.log('Acesso negado: usuário não é administrador');
+        return;
+    }
+
     // Elementos do DOM
     const logoutBtn = document.getElementById('logout-btn');
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -13,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeModalSpan = document.querySelector('.close');
 
     // Event Listeners
-    logoutBtn.addEventListener('click', logout);
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
     
     // Tabs
     tabBtns.forEach(btn => {
@@ -24,12 +33,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Forms
-    formNovoUsuario.addEventListener('submit', criarUsuario);
-    formEditarUsuario.addEventListener('submit', salvarEdicaoUsuario);
+    if (formNovoUsuario) formNovoUsuario.addEventListener('submit', criarUsuario);
+    if (formEditarUsuario) formEditarUsuario.addEventListener('submit', salvarEdicaoUsuario);
 
     // Modal
-    fecharModalBtn.addEventListener('click', fecharModal);
-    closeModalSpan.addEventListener('click', fecharModal);
+    if (fecharModalBtn) fecharModalBtn.addEventListener('click', fecharModal);
+    if (closeModalSpan) closeModalSpan.addEventListener('click', fecharModal);
     window.addEventListener('click', (e) => {
         if (e.target === modalEditar) fecharModal();
     });
@@ -72,6 +81,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para carregar lista de usuários
     async function carregarListaUsuarios() {
         try {
+            if (!usuariosBody) return;
+            
             usuariosBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Carregando...</td></tr>';
 
             const { data: usuarios, error } = await supabase
@@ -128,7 +139,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Erro ao carregar usuários:', error);
             mostrarMensagem('Erro ao carregar lista de usuários: ' + error.message, 'error');
-            usuariosBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc3545;">Erro ao carregar usuários</td></tr>';
+            if (usuariosBody) {
+                usuariosBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #dc3545;">Erro ao carregar usuários</td></tr>';
+            }
         }
     }
 
@@ -369,6 +382,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para mostrar mensagens
     function mostrarMensagem(mensagem, tipo = 'success') {
         const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
+        
         const mensagemDiv = document.createElement('div');
         mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
         mensagemDiv.innerHTML = `

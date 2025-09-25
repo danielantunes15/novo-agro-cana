@@ -118,6 +118,32 @@
             background-color: #dc3545;
             color: white;
         }
+        .access-denied {
+            text-align: center;
+            padding: 40px 20px;
+            color: #721c24;
+        }
+        .access-denied h2 {
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+        .access-denied p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .access-denied .btn-primary {
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .access-denied .btn-primary:hover {
+            background-color: #2980b9;
+        }
     </style>
 </head>
 <body>
@@ -140,62 +166,75 @@
         <div class="container">
             <div id="alert-container"></div>
             
-            <div class="card">
-                <h2>Gerenciamento de Usuários</h2>
+            <!-- Container que será mostrado apenas para administradores -->
+            <div id="admin-content" style="display: none;">
+                <div class="card">
+                    <h2>Gerenciamento de Usuários</h2>
 
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="lista-usuarios">Lista de Usuários</button>
-                    <button class="tab-btn" data-tab="novo-usuario">Novo Usuário</button>
-                </div>
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="lista-usuarios">Lista de Usuários</button>
+                        <button class="tab-btn" data-tab="novo-usuario">Novo Usuário</button>
+                    </div>
 
-                <div id="lista-usuarios" class="tab-content active">
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Usuário</th>
-                                    <th>Tipo</th>
-                                    <th>Status</th>
-                                    <th>Criado em</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="usuarios-body">
-                                <tr>
-                                    <td colspan="6" style="text-align: center;">Carregando usuários...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div id="lista-usuarios" class="tab-content active">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Usuário</th>
+                                        <th>Tipo</th>
+                                        <th>Status</th>
+                                        <th>Criado em</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usuarios-body">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center;">Carregando usuários...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="novo-usuario" class="tab-content">
+                        <form id="form-novo-usuario" class="form">
+                            <div class="form-group">
+                                <label for="novo-nome">Nome Completo *</label>
+                                <input id="novo-nome" type="text" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="novo-username">Usuário (login) *</label>
+                                <input id="novo-username" type="text" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="nova-senha">Senha (mínimo 6 caracteres) *</label>
+                                <input id="nova-senha" type="password" minlength="6" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="tipo-usuario">Tipo de Usuário *</label>
+                                <select id="tipo-usuario" required>
+                                    <option value="user">Usuário Normal</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn-primary" type="submit">Criar Usuário</button>
+                                <button class="btn-secondary" type="reset">Limpar</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
+            </div>
 
-                <div id="novo-usuario" class="tab-content">
-                    <form id="form-novo-usuario" class="form">
-                        <div class="form-group">
-                            <label for="novo-nome">Nome Completo *</label>
-                            <input id="novo-nome" type="text" required />
-                        </div>
-                        <div class="form-group">
-                            <label for="novo-username">Usuário (login) *</label>
-                            <input id="novo-username" type="text" required />
-                        </div>
-                        <div class="form-group">
-                            <label for="nova-senha">Senha (mínimo 6 caracteres) *</label>
-                            <input id="nova-senha" type="password" minlength="6" required />
-                        </div>
-                        <div class="form-group">
-                            <label for="tipo-usuario">Tipo de Usuário *</label>
-                            <select id="tipo-usuario" required>
-                                <option value="user">Usuário Normal</option>
-                                <option value="admin">Administrador</option>
-                            </select>
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn-primary" type="submit">Criar Usuário</button>
-                            <button class="btn-secondary" type="reset">Limpar</button>
-                        </div>
-                    </form>
+            <!-- Mensagem de acesso negado para usuários normais -->
+            <div id="access-denied-message" style="display: none;">
+                <div class="card access-denied">
+                    <h2>❌ Acesso Negado</h2>
+                    <p>Você não possui permissão para acessar esta página.</p>
+                    <p>Apenas usuários administradores podem gerenciar usuários do sistema.</p>
+                    <a href="index.html" class="btn-primary">Voltar para a Página Inicial</a>
                 </div>
             </div>
         </div>
@@ -238,7 +277,6 @@
     </div>
 
     <script>
-      
         // Configuração do Supabase
         const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
@@ -248,28 +286,48 @@
     </script>
 
     <script src="js/gerenciamento-usuarios.js"></script>
-<script>
-// Correção imediata para o botão Sair
-document.addEventListener('DOMContentLoaded', function() {
-    const logoutBtn = document.getElementById('logout-btn');
-    
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
+    <script>
+        // Correção imediata para o botão Sair
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutBtn = document.getElementById('logout-btn');
             
-            // Usar o sistema de autenticação customizado
-            if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
-                window.sistemaAuth.fazerLogout();
-            } 
-            // Fallback: redirecionamento direto
-            else {
-                localStorage.removeItem('usuarioLogado');
-                window.location.href = 'login.html';
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Usar o sistema de autenticação customizado
+                    if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
+                        window.sistemaAuth.fazerLogout();
+                    } 
+                    // Fallback: redirecionamento direto
+                    else {
+                        localStorage.removeItem('usuarioLogado');
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
+
+            // Verificar se o usuário está logado e é administrador
+            const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado') || '{}');
+            const adminContent = document.getElementById('admin-content');
+            const accessDeniedMessage = document.getElementById('access-denied-message');
+
+            if (usuarioLogado && usuarioLogado.tipo === 'admin') {
+                // Usuário é administrador - mostrar conteúdo
+                adminContent.style.display = 'block';
+                accessDeniedMessage.style.display = 'none';
+            } else {
+                // Usuário não é administrador - mostrar mensagem de acesso negado
+                adminContent.style.display = 'none';
+                accessDeniedMessage.style.display = 'block';
+                
+                // Remover link ativo do menu
+                const activeLink = document.querySelector('.nav-link.active');
+                if (activeLink) {
+                    activeLink.classList.remove('active');
+                }
             }
         });
-    }
-});
-</script>
-
+    </script>
 </body>
 </html>
