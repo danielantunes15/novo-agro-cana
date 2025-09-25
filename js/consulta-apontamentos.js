@@ -245,7 +245,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <td>R$ ${corte.valor.toFixed(2)}</td>
                         <td>
                             <button class="btn-secondary" onclick="editarApontamento('${apontamento.id}')">Editar</button>
-                            <button class="btn-remove" onclick="excluirApontamento('${apontamento.id}')">Excluir</button>
+                            <button class="btn-remove" onclick="excluirCorteIndividual('${apontamento.id}', '${corte.id}', '${corte.funcionarios.nome}')">Excluir Corte</button>
+                            ${apontamento.cortes_funcionarios.length === 1 ? 
+                                `<button class="btn-remove" onclick="excluirApontamentoCompleto('${apontamento.id}')">Excluir Tudo</button>` : 
+                                ''}
                         </td>
                     </tr>
                 `;
@@ -256,7 +259,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         apontamentosList.innerHTML = html;
     }
 
-    // ✅ corrigido para exibir a data sem fuso horário
     function formatarData(data) {
         if (!data) return '';
         return data.split('T')[0].split('-').reverse().join('/');
@@ -428,7 +430,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const fazendaId = document.getElementById('editar-fazenda').value;
         const talhaoId = document.getElementById('editar-talhao').value;
         
-        // ✅ garantir formato YYYY-MM-DD sem fuso horário
         const dataCorteISO = dataCorte.split('T')[0];
         
         // Coletar metros dos cortes
@@ -455,7 +456,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const { error: apontamentoError } = await supabase
                 .from('apontamentos')
                 .update({
-                    data_corte: dataCorteISO, // ✅ corrigido
+                    data_corte: dataCorteISO,
                     turma: turma,
                     fazenda_id: fazendaId,
                     talhao_id: talhaoId
@@ -476,7 +477,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             mostrarMensagem('Apontamento atualizado com sucesso!');
             fecharModal();
-            await carregarApontamentos(); // Recarregar a lista
+            await carregarApontamentos();
             
         } catch (error) {
             console.error('Erro ao atualizar apontamento:', error);
@@ -484,8 +485,53 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    window.excluirApontamento = async function(apontamentoId) {
-        if (!confirm('Tem certeza que deseja excluir este apontamento? Esta ação não pode ser desfeita.')) {
+    // NOVA FUNÇÃO: Excluir apenas um corte individual
+    window.excluirCorteIndividual = async function(apontamentoId, corteId, nomeFuncionario) {
+        if (!confirm(`Tem certeza que deseja excluir apenas o corte do funcionário ${nomeFuncionario}?`)) {
+            return;
+        }
+        
+        try {
+            // Excluir apenas o corte específico
+            const { error: corteError } = await supabase
+                .from('cortes_funcionarios')
+                .delete()
+                .eq('id', corteId);
+                
+            if (corteError) throw corteError;
+            
+            // Verificar se ainda existem outros cortes neste apontamento
+            const { data: cortesRestantes, error: verificaError } = await supabase
+                .from('cortes_funcionarios')
+                .select('id')
+                .eq('apontamento_id', apontamentoId);
+                
+            if (verificaError) throw verificaError;
+            
+            // Se não houver mais cortes, excluir o apontamento também
+            if (cortesRestantes.length === 0) {
+                const { error: apontamentoError } = await supabase
+                    .from('apontamentos')
+                    .delete()
+                    .eq('id', apontamentoId);
+                    
+                if (apontamentoError) throw apontamentoError;
+                mostrarMensagem('Corte excluído e apontamento removido (não havia mais cortes)!');
+            } else {
+                mostrarMensagem('Corte do funcionário excluído com sucesso!');
+            }
+            
+            await carregarApontamentos();
+            
+        } catch (error) {
+            console.error('Erro ao excluir corte:', error);
+            mostrarMensagem('Erro ao excluir corte: ' + error.message, 'error');
+        }
+    };
+
+    // FUNÇÃO ORIGINAL MODIFICADA: Excluir apontamento completo (todos os cortes)
+    window.excluirApontamentoCompleto = async function(apontamentoId) {
+        if (!confirm('Tem certeza que deseja excluir TODOS os cortes deste apontamento? Esta ação não pode ser desfeita.')) {
             return;
         }
         
@@ -506,8 +552,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
             if (apontamentoError) throw apontamentoError;
             
-            mostrarMensagem('Apontamento excluído com sucesso!');
-            await carregarApontamentos(); // Recarregar a lista
+            mostrarMensagem('Apontamento completo excluído com sucesso!');
+            await carregarApontamentos();
             
         } catch (error) {
             console.error('Erro ao excluir apontamento:', error);
