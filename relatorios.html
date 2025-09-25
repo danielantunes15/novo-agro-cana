@@ -116,6 +116,25 @@
             </div>
         </div>
     </main>
+    
+    // Verificar autenticação em todas as páginas
+async function verificarAutenticacao() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+        window.location.href = 'login.html';
+        return false;
+    }
+    
+    // Verificar se o usuário é admin (para páginas de admin)
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tipo')
+        .eq('id', session.user.id)
+        .single();
+        
+    return { session, isAdmin: profile?.tipo === 'admin' };
+}
 
     <script>
         // Configuração do Supabase (DEVE vir antes do relatorios.js)

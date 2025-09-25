@@ -1,7 +1,10 @@
-// Configuração e inicialização
 document.addEventListener('DOMContentLoaded', async function() {
-    // Verificar autenticação primeiro
-    if (!await verificarAutenticacao()) return;
+    // Verificar autenticação usando o sistema customizado
+    const usuario = window.sistemaAuth?.verificarAutenticacao();
+    if (!usuario) {
+        window.location.href = 'login.html';
+        return;
+    }
 
     // Elementos do DOM
     const loadingElement = document.getElementById('loading');

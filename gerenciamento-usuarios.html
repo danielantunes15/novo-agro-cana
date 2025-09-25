@@ -1,158 +1,251 @@
-<!-- gerenciamento-usuarios.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gerenciamento de Usuários - AGRO CANA FORTE</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/components.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Usuários - AGRO CANA FORTE</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            border-bottom: 3px solid #3498db;
+            color: #3498db;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .alert-message {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .close-alert {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: inherit;
+        }
+        .btn-edit, .btn-toggle, .btn-danger {
+            padding: 6px 12px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-edit {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .btn-toggle.btn-warning {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-toggle.btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-  <header class="header">
-    <div class="container">
-      <h1 class="logo">AGRO CANA FORTE</h1>
-      <nav class="nav">
-        <a href="index.html" class="nav-link">Apontamentos</a>
-        <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
-        <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
-        <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
-        <a href="relatorios.html" class="nav-link">Relatórios</a>
-        <a href="gerenciamento-usuarios.html" class="nav-link">Usuários</a>
-        <button id="logout-btn" class="btn-logout">Sair</button>
-      </nav>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">AGRO CANA FORTE</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Apontamentos</a>
+                <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
+                <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
+                <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
+                <a href="relatorios.html" class="nav-link">Relatórios</a>
+                <a href="gerenciamento-usuarios.html" class="nav-link active">Usuários</a>
+                <button id="logout-btn" class="btn-logout">Sair</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div id="alert-container"></div>
+            
+            <div class="card">
+                <h2>Gerenciamento de Usuários</h2>
+
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="lista-usuarios">Lista de Usuários</button>
+                    <button class="tab-btn" data-tab="novo-usuario">Novo Usuário</button>
+                </div>
+
+                <div id="lista-usuarios" class="tab-content active">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Usuário</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Criado em</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usuarios-body">
+                                <tr>
+                                    <td colspan="6" style="text-align: center;">Carregando usuários...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="novo-usuario" class="tab-content">
+                    <form id="form-novo-usuario" class="form">
+                        <div class="form-group">
+                            <label for="novo-nome">Nome Completo *</label>
+                            <input id="novo-nome" type="text" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="novo-username">Usuário (login) *</label>
+                            <input id="novo-username" type="text" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="nova-senha">Senha (mínimo 6 caracteres) *</label>
+                            <input id="nova-senha" type="password" minlength="6" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="tipo-usuario">Tipo de Usuário *</label>
+                            <select id="tipo-usuario" required>
+                                <option value="user">Usuário Normal</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn-primary" type="submit">Criar Usuário</button>
+                            <button class="btn-secondary" type="reset">Limpar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal editar usuário -->
+    <div id="modal-editar" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Editar Usuário</h3>
+            <form id="form-editar-usuario">
+                <input type="hidden" id="editar-id" />
+                <div class="form-group">
+                    <label for="editar-nome">Nome Completo *</label>
+                    <input id="editar-nome" type="text" required />
+                </div>
+                <div class="form-group">
+                    <label for="editar-username">Usuário (login) *</label>
+                    <input id="editar-username" type="text" required />
+                </div>
+                <div class="form-group">
+                    <label for="editar-tipo">Tipo de Usuário *</label>
+                    <select id="editar-tipo" required>
+                        <option value="user">Usuário Normal</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="editar-ativo" />
+                        Usuário Ativo
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-primary" type="submit">Salvar Alterações</button>
+                    <button class="btn-secondary" type="button" id="fechar-modal">Cancelar</button>
+                </div>
+            </form>
+        </div>
     </div>
-  </header>
 
-  <main class="main">
-    <div class="container">
-      <div id="alert-container"></div>
-      
-      <div class="card">
-        <h2>Gerenciamento de Usuários</h2>
+    <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
 
-        <div class="tabs">
-          <button class="tab-btn active" data-tab="lista-usuarios">Lista de Usuários</button>
-          <button class="tab-btn" data-tab="novo-usuario">Novo Usuário</button>
-          <button class="tab-btn" data-tab="meu-perfil">Meu Perfil</button>
-        </div>
+        // Inicializar Supabase
+        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
 
-        <div id="lista-usuarios" class="tab-content active">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Usuário</th>
-                  <th>Tipo</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="usuarios-body">
-                <tr>
-                  <td colspan="5" style="text-align: center;">Carregando usuários...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div id="novo-usuario" class="tab-content">
-          <form id="form-novo-usuario" class="form">
-            <div class="form-group">
-              <label for="novo-nome">Nome Completo *</label>
-              <input id="novo-nome" type="text" required />
-            </div>
-            <div class="form-group">
-              <label for="novo-username">Usuário (login) *</label>
-              <input id="novo-username" type="text" required />
-            </div>
-            <div class="form-group">
-              <label for="nova-senha">Senha (mínimo 6 caracteres) *</label>
-              <input id="nova-senha" type="password" minlength="6" required />
-            </div>
-            <div class="form-group">
-              <label for="tipo-usuario">Tipo de Usuário *</label>
-              <select id="tipo-usuario" required>
-                <option value="user">Usuário Normal</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </div>
-            <div class="form-actions">
-              <button class="btn-primary" type="submit">Criar Usuário</button>
-              <button class="btn-secondary" type="reset">Limpar</button>
-            </div>
-          </form>
-        </div>
-
-        <div id="meu-perfil" class="tab-content">
-          <form id="form-meu-perfil" class="form">
-            <div class="form-group">
-              <label for="perfil-nome">Nome Completo *</label>
-              <input id="perfil-nome" type="text" required />
-            </div>
-            <div class="form-group">
-              <label for="perfil-username">Usuário (login) *</label>
-              <input id="perfil-username" type="text" required />
-            </div>
-            <h3>Alterar Senha (opcional)</h3>
-            <div class="form-group">
-              <label for="nova-senha-perfil">Nova Senha (deixe em branco para não alterar)</label>
-              <input id="nova-senha-perfil" type="password" minlength="6" />
-            </div>
-            <div class="form-group">
-              <label for="confirmar-senha-perfil">Confirmar Nova Senha</label>
-              <input id="confirmar-senha-perfil" type="password" minlength="6" />
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn-primary">Salvar Alterações</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- Modal editar usuário -->
-  <div id="modal-editar" class="modal" style="display:none;">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h3>Editar Usuário</h3>
-      <form id="form-editar-usuario">
-        <input type="hidden" id="editar-id" />
-        <div class="form-group">
-          <label for="editar-nome">Nome Completo *</label>
-          <input id="editar-nome" type="text" required />
-        </div>
-        <div class="form-group">
-          <label for="editar-username">Usuário (login) *</label>
-          <input id="editar-username" type="text" required />
-        </div>
-        <div class="form-group">
-          <label for="editar-tipo">Tipo de Usuário *</label>
-          <select id="editar-tipo" required>
-            <option value="user">Usuário Normal</option>
-            <option value="admin">Administrador</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="editar-ativo" />
-            <span class="checkmark"></span>
-            Usuário Ativo
-          </label>
-        </div>
-        <div class="form-actions">
-          <button class="btn-primary" type="submit">Salvar Alterações</button>
-          <button class="btn-secondary" type="button" id="fechar-modal">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js"></script>
-  <script src="js/gerenciamento-usuarios.js"></script>
+    <script src="js/gerenciamento-usuarios.js"></script>
 </body>
 </html>
