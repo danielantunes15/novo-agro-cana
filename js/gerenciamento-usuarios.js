@@ -56,11 +56,17 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Verificar se é admin
         const user = session.user;
-        const { data: perfil } = await supabase
+        const { data: perfil, error } = await supabase
             .from('profiles')
             .select('tipo, ativo')
             .eq('id', user.id)
             .single();
+
+        if (error) {
+            console.error('Erro ao verificar permissões:', error);
+            mostrarMensagem('Erro ao verificar permissões', 'error');
+            return false;
+        }
 
         if (!perfil?.ativo) {
             alert('Sua conta está desativada.');
@@ -84,16 +90,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.location.href = 'login.html';
         } catch (error) {
             console.error('Erro ao fazer logout:', error);
+            mostrarMensagem('Erro ao fazer logout', 'error');
         }
     }
 
     // Função para alternar entre abas
     function switchTab(tabId) {
-        // Remover active de todas as abas e conteúdos
         tabBtns.forEach(btn => btn.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
 
-        // Ativar aba e conteúdo selecionados
         document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
         document.getElementById(tabId).classList.add('active');
     }
@@ -101,10 +106,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Função para carregar lista de usuários
     async function carregarListaUsuarios() {
         try {
+            usuariosBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Carregando...</td></tr>';
+
             const { data: usuarios, error } = await supabase
                 .from('profiles')
                 .select('id, nome, username, tipo, ativo, created_at')
-                .neq('hidden', true) // Excluir usuários ocultos
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -116,8 +122,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
 
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+
             usuarios.forEach(usuario => {
                 const tr = document.createElement('tr');
+                const isCurrentUser = usuario.id === currentUser.id;
                 
                 tr.innerHTML = `
                     <td>${usuario.nome || 'N/A'}</td>
@@ -130,11 +139,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </td>
                     <td>
                         <button class="btn-edit" data-id="${usuario.id}">Editar</button>
-                        ${usuario.tipo !== 'admin' ? 
-                            `<button class="btn-toggle" data-id="${usuario.id}" data-active="${usuario.ativo}">
+                        ${!isCurrentUser ? 
+                            `<button class="btn-toggle ${!usuario.ativo ? 'inactive' : ''}" 
+                                data-id="${usuario.id}" data-active="${usuario.ativo}">
                                 ${usuario.ativo ? 'Desativar' : 'Ativar'}
+                            </button>
+                            <button class="btn-delete" data-id="${usuario.id}" data-nome="${usuario.nome}">
+                                Excluir
                             </button>` : 
-                            ''
+                            '<span style="color: #6c757d;">Usuário atual</span>'
                         }
                     </td>
                 `;
@@ -154,9 +167,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 ));
             });
 
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', () => excluirUsuario(
+                    btn.getAttribute('data-id'),
+                    btn.getAttribute('data-nome')
+                ));
+            });
+
         } catch (error) {
             console.error('Erro ao carregar usuários:', error);
             mostrarMensagem('Erro ao carregar lista de usuários', 'error');
+            usuariosBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #dc3545;">Erro ao carregar usuários</td></tr>';
         }
     }
 
@@ -173,7 +194,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (error) throw error;
 
             document.getElementById('perfil-nome').value = perfil.nome || '';
-            document.getElementById('perfil-username').value = perfil.username;
+            document.getElementById('perfil-username').value = perfil.username || '';
 
         } catch (error) {
             console.error('Erro ao carregar perfil:', error);
@@ -234,11 +255,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                     ativo: true
                 });
 
-            if (profileError) throw profileError;
+            if (profileError) {
+                // Se der erro no profile, tentar excluir o usuário do auth
+                await supabase.auth.admin.deleteUser(authData.user.id);
+                throw profileError;
+            }
 
-            mostrarMensagem('Usuário criado com sucesso!');
+            mostrarMensagem('Usuário criado com sucesso!', 'success');
             formNovoUsuario.reset();
             await carregarListaUsuarios();
+            switchTab('lista-usuarios');
 
         } catch (error) {
             console.error('Erro ao criar usuário:', error);
@@ -253,9 +279,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         const nome = document.getElementById('perfil-nome').value.trim();
         const username = document.getElementById('perfil-username').value.trim();
         const novaSenha = document.getElementById('nova-senha-perfil').value;
+        const confirmarSenha = document.getElementById('confirmar-senha-perfil').value;
 
         if (!nome || !username) {
             mostrarMensagem('Preencha todos os campos obrigatórios', 'error');
+            return;
+        }
+
+        if (novaSenha && novaSenha !== confirmarSenha) {
+            mostrarMensagem('As senhas não coincidem', 'error');
+            return;
+        }
+
+        if (novaSenha && novaSenha.length < 6) {
+            mostrarMensagem('A senha deve ter pelo menos 6 caracteres', 'error');
             return;
         }
 
@@ -285,11 +322,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             // Atualizar senha se fornecida
             if (novaSenha) {
-                if (novaSenha.length < 6) {
-                    mostrarMensagem('A senha deve ter pelo menos 6 caracteres', 'error');
-                    return;
-                }
-
                 const { error: passwordError } = await supabase.auth.updateUser({
                     password: novaSenha
                 });
@@ -297,8 +329,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (passwordError) throw passwordError;
             }
 
-            mostrarMensagem('Perfil atualizado com sucesso!');
+            mostrarMensagem('Perfil atualizado com sucesso!', 'success');
             document.getElementById('nova-senha-perfil').value = '';
+            document.getElementById('confirmar-senha-perfil').value = '';
 
         } catch (error) {
             console.error('Erro ao atualizar perfil:', error);
@@ -319,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             document.getElementById('editar-id').value = usuario.id;
             document.getElementById('editar-nome').value = usuario.nome || '';
-            document.getElementById('editar-username').value = usuario.username;
+            document.getElementById('editar-username').value = usuario.username || '';
             document.getElementById('editar-tipo').value = usuario.tipo;
             document.getElementById('editar-ativo').checked = usuario.ativo;
 
@@ -374,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (error) throw error;
 
-            mostrarMensagem('Usuário atualizado com sucesso!');
+            mostrarMensagem('Usuário atualizado com sucesso!', 'success');
             fecharModal();
             await carregarListaUsuarios();
 
@@ -386,6 +419,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Função para ativar/desativar usuário
     async function toggleUsuario(userId, currentlyActive) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        if (userId === currentUser.id) {
+            mostrarMensagem('Você não pode desativar sua própria conta', 'error');
+            return;
+        }
+
         if (!confirm(`Tem certeza que deseja ${currentlyActive ? 'desativar' : 'ativar'} este usuário?`)) {
             return;
         }
@@ -398,7 +438,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (error) throw error;
 
-            mostrarMensagem(`Usuário ${currentlyActive ? 'desativado' : 'ativado'} com sucesso!`);
+            mostrarMensagem(`Usuário ${currentlyActive ? 'desativado' : 'ativado'} com sucesso!`, 'success');
             await carregarListaUsuarios();
 
         } catch (error) {
@@ -407,25 +447,64 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    // Função para excluir usuário
+    async function excluirUsuario(userId, userName) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        
+        if (userId === currentUser.id) {
+            mostrarMensagem('Você não pode excluir sua própria conta', 'error');
+            return;
+        }
+
+        if (!confirm(`Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita.`)) {
+            return;
+        }
+
+        try {
+            // Excluir do Supabase Auth (requer permissões de admin)
+            const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+            
+            if (authError) {
+                // Se não conseguir excluir do auth, apenas marcar como inativo
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update({ ativo: false })
+                    .eq('id', userId);
+                
+                if (profileError) throw profileError;
+                
+                mostrarMensagem('Usuário desativado (não foi possível excluir completamente)', 'success');
+            } else {
+                // Excluir do profiles também
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .delete()
+                    .eq('id', userId);
+                
+                if (profileError) throw profileError;
+                
+                mostrarMensagem('Usuário excluído com sucesso!', 'success');
+            }
+
+            await carregarListaUsuarios();
+
+        } catch (error) {
+            console.error('Erro ao excluir usuário:', error);
+            mostrarMensagem('Erro ao excluir usuário: ' + error.message, 'error');
+        }
+    }
+
     // Função para mostrar mensagens
     function mostrarMensagem(mensagem, tipo = 'success') {
-        // Remover mensagens anteriores
-        const mensagensAntigas = document.querySelectorAll('.alert-message');
-        mensagensAntigas.forEach(msg => msg.remove());
-
+        const alertContainer = document.getElementById('alert-container');
         const mensagemDiv = document.createElement('div');
         mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
         mensagemDiv.innerHTML = `
-            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px; 
-                       ${tipo === 'error' ? 'background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : 
-                         'background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;'}">
-                ${mensagem}
-                <button onclick="this.parentElement.parentElement.remove()" 
-                        style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
-            </div>
+            ${mensagem}
+            <button class="close-alert" onclick="this.parentElement.remove()">×</button>
         `;
         
-        document.querySelector('.main .container').prepend(mensagemDiv);
+        alertContainer.appendChild(mensagemDiv);
 
         // Auto-remover após 5 segundos
         setTimeout(() => {
