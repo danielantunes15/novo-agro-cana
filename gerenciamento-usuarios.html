@@ -1,0 +1,138 @@
+<!-- gerenciamento-usuarios.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gerenciamento de Usuários - AGRO CANA FORTE</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <header class="header">
+        <div class="container">
+            <h1 class="logo">AGRO CANA FORTE</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Apontamentos</a>
+                <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
+                <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
+                <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
+                <a href="relatorios.html" class="nav-link">Relatórios</a>
+                <a href="gerenciamento-usuarios.html" class="nav-link">Usuários</a>
+
+                <!-- Botão de logout será adicionado via JavaScript -->
+            </nav>
+        </div>
+    </header>
+
+  <main class="main">
+    <div class="container">
+      <div class="card">
+        <h2>Gerenciamento de Usuários</h2>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="lista-usuarios">Lista de Usuários</button>
+          <button class="tab-btn" data-tab="novo-usuario">Novo Usuário</button>
+          <button class="tab-btn" data-tab="meu-perfil">Meu Perfil</button>
+        </div>
+
+        <div id="lista-usuarios" class="tab-content active">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr><th>Nome</th><th>Usuário</th><th>Tipo</th><th>Status</th><th>Ações</th></tr>
+              </thead>
+              <tbody id="usuarios-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="novo-usuario" class="tab-content">
+          <form id="form-novo-usuario" class="form">
+            <div class="form-group">
+              <label for="novo-nome">Nome Completo</label>
+              <input id="novo-nome" required />
+            </div>
+            <div class="form-group">
+              <label for="novo-username">Usuário (login)</label>
+              <input id="novo-username" required />
+            </div>
+            <div class="form-group">
+              <label for="nova-senha">Senha (mín 6)</label>
+              <input id="nova-senha" type="password" minlength="6" required />
+            </div>
+            <div class="form-group">
+              <label for="tipo-usuario">Tipo</label>
+              <select id="tipo-usuario">
+                <option value="user">Usuário Normal</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button class="btn-primary" type="submit">Criar Usuário</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="meu-perfil" class="tab-content">
+          <form id="form-meu-perfil" class="form">
+            <div class="form-group">
+              <label for="perfil-nome">Nome Completo</label>
+              <input id="perfil-nome" required />
+            </div>
+            <div class="form-group">
+              <label for="perfil-username">Usuário (login)</label>
+              <input id="perfil-username" required />
+            </div>
+            <h3>Alterar Senha</h3>
+            <div class="form-group">
+              <label for="nova-senha-perfil">Nova Senha</label>
+              <input id="nova-senha-perfil" type="password" minlength="6" />
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Salvar Alterações</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal editar -->
+  <div id="modal-editar" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Editar Usuário</h3>
+      <form id="form-editar-usuario">
+        <input type="hidden" id="editar-id" />
+        <div class="form-group">
+          <label for="editar-nome">Nome</label>
+          <input id="editar-nome" required />
+        </div>
+        <div class="form-group">
+          <label for="editar-username">Usuário</label>
+          <input id="editar-username" required />
+        </div>
+        <div class="form-group">
+          <label for="editar-tipo">Tipo</label>
+          <select id="editar-tipo">
+            <option value="user">Usuário Normal</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="editar-ativo" /> Ativo</label>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit">Salvar</button>
+          <button class="btn-secondary" type="button" id="fechar-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/gerenciamento-usuarios.js"></script>
+</body>
+</html>

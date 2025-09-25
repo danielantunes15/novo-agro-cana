@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs de Acesso - AGRO CANA FORTE</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">AGRO CANA FORTE</h1>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Apontamentos</a>
+                <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
+                <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
+                <a href="cadastros-gerais.html" class="nav-link">Cadastros</a>
+                <a href="relatorios.html" class="nav-link">Relatórios</a>
+                <a href="gerenciamento-usuarios.html" class="nav-link">Usuários</a>
+
+                <!-- Botão de logout será adicionado via JavaScript -->
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="card">
+                <h2>Logs de Acesso do Sistema</h2>
+                
+                <div class="filters">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="filter-user">Usuário</label>
+                            <select id="filter-user">
+                                <option value="">Todos os usuários</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-action">Ação</label>
+                            <select id="filter-action">
+                                <option value="">Todas as ações</option>
+                                <option value="login">Login</option>
+                                <option value="logout">Logout</option>
+                                <option value="password_change">Alteração de Senha</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-date">Data</label>
+                            <input type="date" id="filter-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="filter-success">Status</label>
+                            <select id="filter-success">
+                                <option value="">Todos</option>
+                                <option value="true">Sucesso</option>
+                                <option value="false">Falha</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="apply-filters" class="btn-primary">Aplicar Filtros</button>
+                    <button id="reset-filters" class="btn-secondary">Limpar</button>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Usuário</th>
+                                <th>Ação</th>
+                                <th>IP</th>
+                                <th>Status</th>
+                                <th>Mensagem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-body">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Carregando logs...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button id="prev-page" class="btn-secondary">Anterior</button>
+                    <span id="page-info">Página 1 de 1</span>
+                    <button id="next-page" class="btn-secondary">Próxima</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/gerenciamento-logs.js"></script>
+</body>
+</html>

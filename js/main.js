@@ -1,5 +1,8 @@
 // Configuração e inicialização
 document.addEventListener('DOMContentLoaded', async function() {
+    // Verificar autenticação primeiro
+    if (!await verificarAutenticacao()) return;
+
     // Elementos do DOM
     const loadingElement = document.getElementById('loading');
     const contentElement = document.getElementById('content');
@@ -34,12 +37,68 @@ document.addEventListener('DOMContentLoaded', async function() {
         apontamentoForm.addEventListener('submit', salvarApontamento);
         fazendaSelect.addEventListener('change', carregarTalhoes);
 
+        // Adicionar botão de logout se não existir
+        adicionarBotaoLogout();
+
         console.log('Sistema inicializado com sucesso!');
 
     } catch (error) {
         console.error('Erro na inicialização:', error);
         loadingElement.style.display = 'none';
         errorElement.style.display = 'block';
+    }
+
+    // Função para verificar autenticação
+    async function verificarAutenticacao() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            window.location.href = 'login.html';
+            return false;
+        }
+        
+        // Verificar se o usuário está ativo
+        const user = session.user;
+        const { data: perfil } = await supabase
+            .from('profiles')
+            .select('ativo')
+            .eq('id', user.id)
+            .single();
+            
+        if (!perfil?.ativo) {
+            alert('Sua conta está desativada. Entre em contato com o administrador.');
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Função para adicionar botão de logout na navegação
+    function adicionarBotaoLogout() {
+        const nav = document.querySelector('.nav');
+        const existingLogout = document.querySelector('#logout-btn');
+        
+        if (!existingLogout) {
+            const logoutBtn = document.createElement('button');
+            logoutBtn.id = 'logout-btn';
+            logoutBtn.className = 'btn-secondary';
+            logoutBtn.textContent = 'Sair';
+            logoutBtn.style.marginLeft = 'auto';
+            logoutBtn.addEventListener('click', logout);
+            
+            nav.appendChild(logoutBtn);
+        }
+    }
+
+    // Função para logout
+    async function logout() {
+        try {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error('Erro ao fazer logout:', error);
+        }
     }
 
     // Função para testar conexão
@@ -278,6 +337,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const precoPorMetro = calcularPrecoPorMetro(talhaoData);
             console.log('Preço por metro calculado:', precoPorMetro);
             
+            // Obter informações do usuário logado
+            const { data: { user } } = await supabase.auth.getUser();
+            
             // Inserir apontamento principal
             const { data: apontamento, error: apontamentoError } = await supabase
                 .from('apontamentos')
@@ -286,7 +348,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     turma: turma,
                     fazenda_id: fazendaId,
                     talhao_id: talhaoId,
-                    preco_por_metro: precoPorMetro
+                    preco_por_metro: precoPorMetro,
+                    usuario_id: user.id, // Registrar quem criou o apontamento
+                    criado_em: new Date().toISOString()
                 })
                 .select()
                 .single();
@@ -408,6 +472,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             console.error('Erro ao carregar apontamentos:', error);
             apontamentosList.innerHTML = '<p>Erro ao carregar apontamentos.</p>';
+        }
+    }
+});
+
+// Função global para logout (disponível em todas as páginas)
+async function logout() {
+    try {
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        window.location.href = 'login.html';
+    } catch (error) {
+        console.error('Erro ao fazer logout:', error);
+        alert('Erro ao fazer logout: ' + error.message);
+    }
+}
+
+// Verificar autenticação em tempo real
+supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+        // Redirecionar para login se estiver em página protegida
+        if (!window.location.pathname.includes('login.html')) {
+            window.location.href = 'login.html';
         }
     }
 });

