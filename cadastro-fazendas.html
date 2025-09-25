@@ -121,5 +121,28 @@
     </script>
 
     <script src="js/fazendas.js"></script>
+<script>
+// Correção imediata para o botão Sair
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Usar o sistema de autenticação customizado
+            if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
+                window.sistemaAuth.fazerLogout();
+            } 
+            // Fallback: redirecionamento direto
+            else {
+                localStorage.removeItem('usuarioLogado');
+                window.location.href = 'login.html';
+            }
+        });
+    }
+});
+</script>
+
 </body>
 </html>
