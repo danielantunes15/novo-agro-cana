@@ -1,4 +1,4 @@
-// main.js - VERSÃO CORRIGIDA - COM RESUMO DE APONTAMENTOS
+// main.js - VERSÃO CORRIGIDA - COM RESUMO DE APONTAMENTOS E PUXAR TURMA
 document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação usando o sistema customizado
     const usuario = window.sistemaAuth?.verificarAutenticacao();
@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const apontamentoDiariaForm = document.getElementById('apontamento-diaria-form');
         const addFuncionarioBtn = document.getElementById('add-funcionario');
         const addFuncionarioDiariaBtn = document.getElementById('add-funcionario-diaria');
+        const puxarFuncionariosTurmaBtn = document.getElementById('puxar-funcionarios-turma');
         const fazendaSelect = document.getElementById('fazenda');
 
         try {
@@ -96,6 +97,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (addFuncionarioDiariaBtn) {
                 addFuncionarioDiariaBtn.addEventListener('click', adicionarFuncionarioDiaria);
+            }
+            
+            if (puxarFuncionariosTurmaBtn) {
+                puxarFuncionariosTurmaBtn.addEventListener('click', puxarFuncionariosDaTurma);
             }
             
             if (apontamentoForm) {
@@ -245,8 +250,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    // Função para adicionar campo de funcionário (Diária)
+    // Função para adicionar campo de funcionário (Diária) - Chamada pelo botão "+"
     function adicionarFuncionarioDiaria() {
+        adicionarFuncionarioDiariaItem();
+    }
+    
+    // NOVO: Função que cria e adiciona um único item de funcionário (Diária)
+    function adicionarFuncionarioDiariaItem(funcionarioId = null, allFuncionarios = null) {
         const funcionariosContainer = document.getElementById('funcionarios-diaria-container');
         if (!funcionariosContainer) return;
         
@@ -265,7 +275,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             </div>
         `;
         
-        funcionariosContainer.appendChild(funcionarioItem);
+        // Verifica se é a primeira linha e se já tem uma linha para evitar duplicidade
+        if (funcionariosContainer.children.length === 0 || funcionarioId !== null) {
+             funcionariosContainer.appendChild(funcionarioItem);
+        } else if (funcionariosContainer.children.length > 0 && funcionariosContainer.firstElementChild.querySelector('.funcionario-select-diaria')?.value !== "") {
+             // Só adiciona se o primeiro select já estiver preenchido (melhor UX)
+             funcionariosContainer.appendChild(funcionarioItem);
+        } else if (funcionariosContainer.children.length > 0 && funcionariosContainer.firstElementChild.querySelector('.funcionario-select-diaria')?.value === "") {
+             // Caso a primeira linha esteja vazia, apenas preenche o primeiro select
+             funcionarioItem.remove(); // Não adiciona o novo item
+        }
+
+
         
         // Adicionar evento de remoção
         const removeBtn = funcionarioItem.querySelector('.btn-remove');
@@ -279,7 +300,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Carregar funcionários no select
         const selectElement = funcionarioItem.querySelector('.funcionario-select-diaria');
         if (selectElement) {
-            carregarFuncionariosDiaria(selectElement);
+            // Se tiver a lista de todos os funcionários, usa ela. Senão, puxa do banco.
+            if (allFuncionarios) {
+                popularSelectFuncionario(selectElement, allFuncionarios, funcionarioId);
+            } else {
+                carregarFuncionariosDiaria(selectElement, funcionarioId);
+            }
         }
     }
 
@@ -298,6 +324,116 @@ document.addEventListener('DOMContentLoaded', async function() {
             await carregarFuncionariosDiaria(primeiroSelect);
         }
     }
+    
+    // NOVO: Função auxiliar para buscar todos os funcionários (melhora performance ao adicionar múltiplos)
+    async function buscarTodosFuncionarios() {
+        try {
+            const { data, error } = await supabase
+                .from('funcionarios')
+                .select(`id, nome, turmas(nome)`)
+                .order('nome');
+                
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erro ao buscar todos os funcionários:', error);
+            return [];
+        }
+    }
+    
+    // NOVO: Função para popular o select com a lista e pré-selecionar o ID
+    function popularSelectFuncionario(selectElement, funcionarios, funcionarioId = null) {
+        selectElement.innerHTML = '<option value="">Selecione o funcionário</option>';
+        funcionarios.forEach(funcionario => {
+            const option = document.createElement('option');
+            option.value = funcionario.id;
+            option.textContent = `${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
+            if (funcionarioId === funcionario.id) {
+                 option.selected = true;
+            }
+            selectElement.appendChild(option);
+        });
+    }
+
+    // Função para carregar funcionários (Corte)
+    async function carregarFuncionarios(selectElement) {
+        if (!selectElement) return;
+        
+        try {
+            const funcionarios = await buscarTodosFuncionarios();
+            popularSelectFuncionario(selectElement, funcionarios);
+
+        } catch (error) {
+            console.error('Erro ao carregar funcionários:', error);
+            selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
+        }
+    }
+    
+    // Função para carregar funcionários (Diária)
+    async function carregarFuncionariosDiaria(selectElement) {
+        if (!selectElement) return;
+        
+        try {
+            const funcionarios = await buscarTodosFuncionarios();
+            popularSelectFuncionario(selectElement, funcionarios);
+
+        } catch (error) {
+            console.error('Erro ao carregar funcionários para Diária:', error);
+            selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
+        }
+    }
+    
+    // NOVO: Função para puxar todos os funcionários de uma turma selecionada
+    async function puxarFuncionariosDaTurma() {
+        const turmaDiariaSelect = document.getElementById('turma-diaria');
+        const funcionariosContainer = document.getElementById('funcionarios-diaria-container');
+        
+        const turmaId = turmaDiariaSelect?.value;
+        
+        if (!turmaId) {
+            mostrarMensagem('Selecione uma turma primeiro.', 'error');
+            return;
+        }
+
+        try {
+            mostrarMensagem('Buscando funcionários da turma...', 'success');
+            
+            // 1. Buscar todos os funcionários da turma selecionada
+            const { data: funcionariosDaTurma, error } = await supabase
+                .from('funcionarios')
+                .select(`id, nome, turmas(nome)`)
+                .eq('turma', turmaId)
+                .order('nome');
+                
+            if (error) throw error;
+            
+            if (!funcionariosDaTurma || funcionariosDaTurma.length === 0) {
+                mostrarMensagem('Nenhum funcionário encontrado nesta turma.', 'error');
+                // Limpa o container se não houver ninguém
+                funcionariosContainer.innerHTML = '';
+                adicionarFuncionarioDiariaItem(); // Adiciona uma linha vazia padrão
+                return;
+            }
+
+            // 2. Limpar o container atual
+            funcionariosContainer.innerHTML = '';
+            
+            // 3. Obter a lista completa de funcionários (para popular os selects)
+            const allFuncionarios = await buscarTodosFuncionarios();
+
+            // 4. Adicionar os itens
+            funcionariosDaTurma.forEach(funcionario => {
+                adicionarFuncionarioDiariaItem(funcionario.id, allFuncionarios);
+            });
+            
+            mostrarMensagem(`${funcionariosDaTurma.length} funcionários da turma adicionados.`, 'success');
+            
+        } catch (error) {
+            console.error('Erro ao puxar funcionários da turma:', error);
+            mostrarMensagem('Erro ao puxar funcionários da turma: ' + error.message, 'error');
+        }
+    }
+
 
     // Função para carregar fazendas
     async function carregarFazendas() {
@@ -366,66 +502,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             console.error('Erro ao carregar talhões:', error);
             mostrarMensagem('Erro ao carregar talhões', 'error');
-        }
-    }
-
-    // Função para carregar funcionários (Corte)
-    async function carregarFuncionarios(selectElement) {
-        if (!selectElement) return;
-        
-        try {
-            const { data, error } = await supabase
-                .from('funcionarios')
-                .select(`
-                    id, 
-                    nome, 
-                    turmas(nome)
-                `)
-                .order('nome');
-                
-            if (error) throw error;
-            
-            selectElement.innerHTML = '<option value="">Selecione o funcionário</option>';
-            data.forEach(funcionario => {
-                const option = document.createElement('option');
-                option.value = funcionario.id;
-                option.textContent = `${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
-                selectElement.appendChild(option);
-            });
-
-        } catch (error) {
-            console.error('Erro ao carregar funcionários:', error);
-            selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
-        }
-    }
-    
-    // Função para carregar funcionários (Diária)
-    async function carregarFuncionariosDiaria(selectElement) {
-        if (!selectElement) return;
-        
-        try {
-            const { data, error } = await supabase
-                .from('funcionarios')
-                .select(`
-                    id, 
-                    nome, 
-                    turmas(nome)
-                `)
-                .order('nome');
-                
-            if (error) throw error;
-            
-            selectElement.innerHTML = '<option value="">Selecione o funcionário</option>';
-            data.forEach(funcionario => {
-                const option = document.createElement('option');
-                option.value = funcionario.id;
-                option.textContent = `${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
-                selectElement.appendChild(option);
-            });
-
-        } catch (error) {
-            console.error('Erro ao carregar funcionários para Diária:', error);
-            selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
         }
     }
 
@@ -752,8 +828,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (apontamento.cortes_funcionarios && apontamento.cortes_funcionarios.length > 0) {
                     numFuncionarios = apontamento.cortes_funcionarios.length;
                     apontamento.cortes_funcionarios.forEach(corte => {
-                        // Se for diária, metros é 0.01, mas para exibição o valor real é 0, ou seja, não precisa somar.
-                        // Vamos considerar a metragem apenas se for maior que 0.01 (metragem real)
+                        // Se for diária, metros é 0.01. Contabilizamos a metragem apenas se for maior que 0.01 (metragem real)
                         if (corte.metros && corte.metros > 0.01) { 
                              totalMetros += corte.metros;
                         }
