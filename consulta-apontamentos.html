@@ -7,12 +7,19 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/consulta-apontamentos.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2c7744">
 </head>
 <body>
     <header class="header">
         <div class="container">
             <h1 class="logo">AGRO CANA FORTE</h1>
-            <nav class="nav">
+            <button class="menu-toggle no-print" id="menu-toggle" aria-label="Abrir Menu">
+                &#9776; 
+            </button>
+            <nav class="nav" id="main-nav">
                 <a href="index.html" class="nav-link">Apontamentos</a>
                 <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
                 <a href="cadastro-fazendas.html" class="nav-link">Fazendas</a>
@@ -74,8 +81,7 @@
                 <div class="card">
                     <h2>Apontamentos</h2>
                     <div id="apontamentos-list" class="table-container">
-                        <!-- Lista de apontamentos será carregada aqui -->
-                    </div>
+                        </div>
                 </div>
             </div>
 
@@ -87,7 +93,6 @@
         </div>
     </main>
 
-    <!-- Modal para edição de apontamento -->
     <div id="modal-edicao" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -125,8 +130,7 @@
                     </div>
                     
                     <div id="cortes-container">
-                        <!-- Campos para edição dos cortes serão adicionados aqui -->
-                    </div>
+                        </div>
                     
                     <div class="form-actions">
                         <button type="submit" class="btn-primary">Salvar Alterações</button>
@@ -149,6 +153,18 @@
 
     <script src="js/consulta-apontamentos.js"></script>
 <script>
+// Funcionalidade do Menu Hamburger (NOVO)
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menu-toggle');
+    const mainNav = document.getElementById('main-nav');
+
+    if (menuToggle && mainNav) {
+        menuToggle.addEventListener('click', function() {
+            mainNav.classList.toggle('open');
+        });
+    }
+});
+
 // Correção imediata para o botão Sair
 document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logout-btn');

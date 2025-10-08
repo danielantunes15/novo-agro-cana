@@ -7,12 +7,19 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/cadastro-fazendas.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2c7744">
 </head>
 <body>
     <header class="header">
         <div class="container">
             <h1 class="logo">AGRO CANA FORTE</h1>
-            <nav class="nav">
+            <button class="menu-toggle no-print" id="menu-toggle" aria-label="Abrir Menu">
+                &#9776; 
+            </button>
+            <nav class="nav" id="main-nav">
                 <a href="index.html" class="nav-link">Apontamentos</a>
                 <a href="consulta-apontamentos.html" class="nav-link">Consulta</a>
                 <a href="cadastro-fazendas.html" class="nav-link active">Fazendas</a>
@@ -136,14 +143,12 @@
         </div>
     </main>
 
-    <!-- Modal para detalhes dos talhões -->
     <div id="modal-talhoes" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h3>Talhões da Fazenda</h3>
             <div id="detalhes-talhoes" class="table-container">
-                <!-- Conteúdo será preenchido via JavaScript -->
-            </div>
+                </div>
         </div>
     </div>
 
@@ -159,6 +164,18 @@
     <script src="js/fazendas.js"></script>
 
     <script>
+        // Funcionalidade do Menu Hamburger (NOVO)
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menu-toggle');
+            const mainNav = document.getElementById('main-nav');
+
+            if (menuToggle && mainNav) {
+                menuToggle.addEventListener('click', function() {
+                    mainNav.classList.toggle('open');
+                });
+            }
+        });
+        
         // Correção para o botão Sair
         document.addEventListener('DOMContentLoaded', function() {
             const logoutBtn = document.getElementById('logout-btn');

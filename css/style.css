@@ -115,6 +115,19 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* NOVO: Estilo para o botão Hamburger */
+.menu-toggle {
+    display: none; /* Esconder por padrão no desktop */
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    line-height: 1; /* Alinhamento melhorado */
+    order: 2; /* Garante que fique à direita do logo no mobile */
+}
+
 /* ===== CONTEÚDO PRINCIPAL ===== */
 .main {
     padding: 2.5rem 0;
@@ -335,25 +348,56 @@ tr:hover {
 
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 1024px) {
+    /* Ajuste no Container do Header para mobile */
     .header .container {
-        flex-direction: column;
-        text-align: center;
-        gap: 0.5rem;
+        flex-direction: row; /* Volta para row no nível principal */
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: nowrap; /* Impede que quebrem linha */
     }
-    
+
+    /* Mostrar botão no mobile */
+    .menu-toggle {
+        display: block;
+    }
+
+    /* Ocultar a navegação por padrão */
     .nav {
+        display: none; 
+        position: absolute;
+        top: 65px; /* Altura aproximada do header */
+        left: 0;
         width: 100%;
-        justify-content: center;
+        background-color: var(--primary-dark); /* Fundo do menu aberto */
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 1rem 0;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
     }
     
+    /* Mostrar a navegação quando a classe 'open' estiver presente */
+    .nav.open {
+        display: flex;
+    }
+
     .nav-link {
-        padding: 0.5rem 0.8rem;
-        font-size: 0.9rem;
+        padding: 1rem 1.5rem; /* Aumenta o padding para fácil toque */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: left;
+        width: 100%;
+        font-size: 1rem;
     }
     
+    .nav-link:hover, .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: none; /* Remove a transformação de hover para não distorcer */
+    }
+
     .btn-logout {
-        margin-left: 0;
-        margin-top: 0.5rem;
+        margin: 1rem 1.5rem; /* Margem adequada dentro do menu */
+        width: auto;
     }
     
     .card {
@@ -401,17 +445,6 @@ tr:hover {
 @media (max-width: 480px) {
     .logo {
         font-size: 1.4rem;
-    }
-    
-    .nav {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .nav-link {
-        width: 100%;
-        text-align: center;
-        margin: 0.2rem 0;
     }
     
     .card h2 {
