@@ -109,15 +109,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function carregarTurmasParaFiltro() {
         try {
+            // Buscamos todas as turmas cadastradas para o filtro
             const { data, error } = await supabase
-                .from('apontamentos')
-                .select('turma')
-                .not('turma', 'is', null);
+                .from('turmas')
+                .select('nome')
+                .order('nome');
                 
             if (error) throw error;
             
-            // Extrair turmas únicas
-            const turmasUnicas = [...new Set(data.map(item => item.turma))].filter(turma => turma);
+            // Extrair nomes de turmas únicas e remover nulos
+            const turmasUnicas = [...new Set(data.map(item => item.nome))].filter(turma => turma);
             
             turmaFiltro.innerHTML = '<option value="">Todas as turmas</option>';
             turmasUnicas.forEach(turma => {
@@ -233,19 +234,42 @@ document.addEventListener('DOMContentLoaded', async function() {
         `;
         
         apontamentos.forEach(apontamento => {
-            apontamento.cortes_funcionarios.forEach(corte => {
+            // Verifica se o apontamento tem cortes, caso contrário pode ser um registro incompleto
+            if (!apontamento.cortes_funcionarios || apontamento.cortes_funcionarios.length === 0) {
+                // Linha de aviso para apontamentos sem cortes
                 html += `
                     <tr>
                         <td>${formatarData(apontamento.data_corte)}</td>
-                        <td>${apontamento.turma}</td>
-                        <td>${apontamento.fazendas.nome}</td>
-                        <td>${apontamento.talhoes.numero}</td>
-                        <td>${corte.funcionarios.nome} (${corte.funcionarios.turmas?.nome || 'Sem turma'})</td>
+                        <td>${apontamento.turma || 'N/A'}</td>
+                        <td colspan="5" style="text-align: center; color: #dc3545;">Nenhum corte registrado.</td>
+                        <td>
+                            <button class="btn-secondary" onclick="editarApontamento('${apontamento.id}')">Editar</button>
+                            <button class="btn-remove" onclick="excluirApontamentoCompleto('${apontamento.id}')">Excluir Tudo</button>
+                        </td>
+                    </tr>
+                `;
+                return; 
+            }
+            
+            apontamento.cortes_funcionarios.forEach(corte => {
+                // CORREÇÃO: Usar encadeamento opcional (?.) para acessar propriedades aninhadas
+                const nomeFazenda = apontamento.fazendas?.nome || 'N/A (Diária)';
+                const numTalhao = apontamento.talhoes?.numero || 'N/A (Diária)';
+                const nomeFuncionario = corte.funcionarios?.nome || 'N/A';
+                const nomeTurmaFuncionario = corte.funcionarios?.turmas?.nome || 'Sem turma';
+                
+                html += `
+                    <tr>
+                        <td>${formatarData(apontamento.data_corte)}</td>
+                        <td>${apontamento.turma || 'N/A'}</td>
+                        <td>${nomeFazenda}</td>
+                        <td>${numTalhao}</td>
+                        <td>${nomeFuncionario} (${nomeTurmaFuncionario})</td>
                         <td>${corte.metros.toFixed(2)}</td>
                         <td>R$ ${corte.valor.toFixed(2)}</td>
                         <td>
                             <button class="btn-secondary" onclick="editarApontamento('${apontamento.id}')">Editar</button>
-                            <button class="btn-remove" onclick="excluirCorteIndividual('${apontamento.id}', '${corte.id}', '${corte.funcionarios.nome}')">Excluir Corte</button>
+                            <button class="btn-remove" onclick="excluirCorteIndividual('${apontamento.id}', '${corte.id}', '${nomeFuncionario}')">Excluir Corte</button>
                             ${apontamento.cortes_funcionarios.length === 1 ? 
                                 `<button class="btn-remove" onclick="excluirApontamentoCompleto('${apontamento.id}')">Excluir Tudo</button>` : 
                                 ''}
@@ -261,6 +285,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     function formatarData(data) {
         if (!data) return '';
+        // CORREÇÃO: Formata a string YYYY-MM-DD para DD/MM/YYYY
         return data.split('T')[0].split('-').reverse().join('/');
     }
 
@@ -317,7 +342,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Carregar turmas, fazendas e talhões para o formulário
             await carregarTurmasParaEdicao(data.turma);
             await carregarFazendasParaEdicao(data.fazenda_id);
-            await carregarTalhoesParaEdicao(data.fazenda_id, data.talhao_id);
+            // Verifica se fazenda_id existe antes de tentar carregar talhões
+            if (data.fazenda_id) {
+                await carregarTalhoesParaEdicao(data.fazenda_id, data.talhao_id);
+            } else {
+                 document.getElementById('editar-talhao').innerHTML = '<option value="">Apontamento de Diária</option>';
+            }
             
             // Preencher cortes dos funcionários
             preencherCortesFuncionarios(data.cortes_funcionarios);
@@ -335,6 +365,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const select = document.getElementById('editar-turma');
         select.innerHTML = '<option value="">Selecione a turma</option>';
         
+        // Usamos a lista de turmas já carregada (turmas)
         turmas.forEach(turma => {
             const option = document.createElement('option');
             option.value = turma;
@@ -348,6 +379,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         const select = document.getElementById('editar-fazenda');
         select.innerHTML = '<option value="">Selecione a fazenda</option>';
         
+        // Adiciona a opção de Diária/Nulo se não houver fazenda selecionada
+        if (!fazendaSelecionada) {
+             select.innerHTML += '<option value="">APONTAMENTO DE DIÁRIA (Sem Fazenda)</option>';
+        }
+
         fazendas.forEach(fazenda => {
             const option = document.createElement('option');
             option.value = fazenda.id;
@@ -399,6 +435,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         cortes.forEach((corte, index) => {
             const corteDiv = document.createElement('div');
             corteDiv.className = 'corte-item';
+            
+            // Determina se é um apontamento de diária (metros muito baixos)
+            const isDiaria = corte.metros <= 0.01;
+            const metrosExibicao = isDiaria ? `Metros (Diária: ${corte.metros.toFixed(2)}m)` : 'Metros Cortados';
+            const metrosValor = isDiaria ? '0.00' : corte.metros; // Exibe 0 se for diária para evitar confusão
+
             corteDiv.innerHTML = `
                 <div class="form-row">
                     <div class="form-group">
@@ -406,9 +448,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <input type="text" value="${corte.funcionarios.nome} (${corte.funcionarios.turmas?.nome || 'Sem turma'})" readonly>
                     </div>
                     <div class="form-group">
-                        <label>Metros Cortados</label>
-                        <input type="number" class="metros-corte" value="${corte.metros}" step="0.01" min="0" required>
+                        <label>${metrosExibicao}</label>
+                        <input type="number" class="metros-corte" value="${metrosValor}" step="0.01" min="0" required ${isDiaria ? 'readonly' : ''}>
                         <input type="hidden" class="corte-id" value="${corte.id}">
+                        ${isDiaria ? '<small style="color:#dc3545;">Valor Fixo (Diária): Edite o valor total na tabela cortes_funcionarios no Supabase.</small>' : ''}
                     </div>
                 </div>
             `;
@@ -427,8 +470,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const apontamentoId = document.getElementById('apontamento-id').value;
         const dataCorte = document.getElementById('editar-data-corte').value;
         const turma = document.getElementById('editar-turma').value;
-        const fazendaId = document.getElementById('editar-fazenda').value;
-        const talhaoId = document.getElementById('editar-talhao').value;
+        const fazendaId = document.getElementById('editar-fazenda').value || null; // Converte string vazia para null
+        const talhaoId = document.getElementById('editar-talhao').value || null; // Converte string vazia para null
         
         const dataCorteISO = dataCorte.split('T')[0];
         
@@ -438,9 +481,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         for (const item of cortesItens) {
             const corteId = item.querySelector('.corte-id').value;
-            const metros = parseFloat(item.querySelector('.metros-corte').value);
+            const metrosInput = item.querySelector('.metros-corte');
             
-            if (isNaN(metros) || metros <= 0) {
+            // Se o campo for somente leitura (Diária), usamos o valor original do banco (0.01)
+            const metros = metrosInput.readOnly 
+                ? 0.01 
+                : parseFloat(metrosInput.value); 
+            
+            if (isNaN(metros) || metros < 0) {
                 mostrarMensagem('Informe valores válidos para os metros cortados.', 'error');
                 return;
             }
@@ -452,6 +500,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         try {
+            let precoPorMetro = 0;
+            
+            // Se fazendaId e talhaoId existirem, buscamos o preco_por_metro
+            if (fazendaId && talhaoId) {
+                const { data: talhao, error: talhaoError } = await supabase
+                    .from('talhoes')
+                    .select('espacamento, preco_tonelada, producao_estimada')
+                    .eq('id', talhaoId)
+                    .single();
+                
+                if (talhaoError) throw talhaoError;
+                
+                // Função para calcular preco_por_metro (reproduzida da main.js para consistência)
+                const calcularPrecoPorMetro = (talhaoData) => {
+                    const precoPMetro = (talhaoData.preco_tonelada * talhaoData.producao_estimada) / (10000 / talhaoData.espacamento / 5);
+                    return parseFloat(precoPMetro.toFixed(4));
+                };
+                
+                precoPorMetro = calcularPrecoPorMetro(talhao);
+            }
+            
             // Atualizar apontamento principal
             const { error: apontamentoError } = await supabase
                 .from('apontamentos')
@@ -459,7 +528,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     data_corte: dataCorteISO,
                     turma: turma,
                     fazenda_id: fazendaId,
-                    talhao_id: talhaoId
+                    talhao_id: talhaoId,
+                    preco_por_metro: precoPorMetro
                 })
                 .eq('id', apontamentoId);
                 
@@ -467,9 +537,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Atualizar cortes dos funcionários
             for (const corte of cortes) {
+                let novoValor = corte.metros * precoPorMetro;
+                
+                // Se for diária (metros = 0.01), não recalcula o valor, pois o valor fixo não está disponível aqui
+                if (corte.metros === 0.01 && precoPorMetro === 0) {
+                    // Mantemos o valor original, mas este é um ponto de fragilidade na edição de diárias.
+                    // Uma solução completa exigiria um campo "valor_diaria" na tabela de apontamentos.
+                }
+
                 const { error: corteError } = await supabase
                     .from('cortes_funcionarios')
-                    .update({ metros: corte.metros })
+                    .update({ 
+                        metros: corte.metros,
+                        // Recalcula o valor apenas se for um apontamento de corte (precoPorMetro > 0)
+                        valor: (precoPorMetro > 0) ? novoValor : undefined 
+                    }) 
                     .eq('id', corte.id);
                     
                 if (corteError) throw corteError;

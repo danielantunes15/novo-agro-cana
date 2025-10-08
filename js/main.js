@@ -1,4 +1,4 @@
-// main.js - VERSÃO CORRIGIDA - COM APONTAMENTO NA DIÁRIA
+// main.js - VERSÃO CORRIGIDA - COM RESUMO DE APONTAMENTOS
 document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação usando o sistema customizado
     const usuario = window.sistemaAuth?.verificarAutenticacao();
@@ -75,18 +75,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Função para inicializar a aplicação
     async function inicializarAplicacao() {
         const apontamentoForm = document.getElementById('apontamento-form');
-        const apontamentoDiariaForm = document.getElementById('apontamento-diaria-form'); // Novo formulário
+        const apontamentoDiariaForm = document.getElementById('apontamento-diaria-form');
         const addFuncionarioBtn = document.getElementById('add-funcionario');
-        const addFuncionarioDiariaBtn = document.getElementById('add-funcionario-diaria'); // Novo botão
+        const addFuncionarioDiariaBtn = document.getElementById('add-funcionario-diaria');
         const fazendaSelect = document.getElementById('fazenda');
 
         try {
             // Carregar dados iniciais
             await carregarFazendas();
             await carregarTurmas();
-            await carregarTurmasDiaria(); // Carregar turmas para o form Diária
+            await carregarTurmasDiaria();
             await carregarFuncionariosIniciais();
-            await carregarFuncionariosDiariaIniciais(); // Carregar funcionário inicial para o form Diária
+            await carregarFuncionariosDiariaIniciais();
             await carregarApontamentosRecentes();
             
             // Configurar event listeners
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 addFuncionarioBtn.addEventListener('click', adicionarFuncionario);
             }
 
-            if (addFuncionarioDiariaBtn) { // NOVO listener
+            if (addFuncionarioDiariaBtn) {
                 addFuncionarioDiariaBtn.addEventListener('click', adicionarFuncionarioDiaria);
             }
             
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 apontamentoForm.addEventListener('submit', salvarApontamento);
             }
 
-            if (apontamentoDiariaForm) { // NOVO listener
+            if (apontamentoDiariaForm) {
                 apontamentoDiariaForm.addEventListener('submit', salvarApontamentoDiaria);
             }
             
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // NOVO: Função para carregar turmas para o formulário Diária
+    // Função para carregar turmas para o formulário Diária
     async function carregarTurmasDiaria() {
         const turmaSelect = document.getElementById('turma-diaria');
         if (!turmaSelect) return;
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    // NOVO: Função para adicionar campo de funcionário (Diária)
+    // Função para adicionar campo de funcionário (Diária)
     function adicionarFuncionarioDiaria() {
         const funcionariosContainer = document.getElementById('funcionarios-diaria-container');
         if (!funcionariosContainer) return;
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    // NOVO: Função para carregar funcionários iniciais (Diária)
+    // Função para carregar funcionários iniciais (Diária)
     async function carregarFuncionariosDiariaIniciais() {
         const primeiroSelect = document.querySelector('.funcionario-select-diaria');
         if (primeiroSelect) {
@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
-    // NOVO: Função para carregar funcionários (Diária)
+    // Função para carregar funcionários (Diária)
     async function carregarFuncionariosDiaria(selectElement) {
         if (!selectElement) return;
         
@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // NOVO: FUNÇÃO SALVAR APONTAMENTO - DIÁRIA (Valor Fixo)
+    // FUNÇÃO SALVAR APONTAMENTO - DIÁRIA (Valor Fixo)
     async function salvarApontamentoDiaria(e) {
         e.preventDefault();
 
@@ -667,7 +667,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const cortesComApontamentoId = funcionariosDiariaIds.map(funcionarioId => ({
                 apontamento_id: apontamento.id,
                 funcionario_id: funcionarioId,
-                metros: 0.01, // CORREÇÃO: Valor mínimo para satisfazer a constraint "cortes_funcionarios_metros_check"
+                metros: 0.01, // Valor mínimo para satisfazer a constraint de checagem, sem alterar o valor final
                 valor: valorFixo // Valor total é o valor da diária
             }));
             
@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para carregar apontamentos recentes (LIMITADO A 5 LINHAS)
+    // Função para carregar apontamentos recentes (RESUMO DOS 5 MAIS RECENTES)
     async function carregarApontamentosRecentes() {
         const apontamentosList = document.getElementById('apontamentos-list');
         if (!apontamentosList) return;
@@ -708,15 +708,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     fazendas(nome),
                     talhoes(numero),
                     cortes_funcionarios(
-                        funcionarios(nome, turmas(nome)),
                         metros,
                         valor
                     )
                 `)
                 .order('data_corte', { ascending: false })
-                .order('id', { ascending: false }) // Ordem secundária para garantir os mais recentes
-                .limit(5); // <-- LIMITE DE 5 LINHAS APLICADO
-                
+                .order('id', { ascending: false }) 
+                .limit(5); // <-- LIMITE DE 5 APONTAMENTOS
+
             if (error) throw error;
             
             if (!data || data.length === 0) {
@@ -733,50 +732,52 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <th>Turma</th>
                             <th>Fazenda</th>
                             <th>Talhão</th>
-                            <th>Funcionário</th>
-                            <th>Metros (m)</th>
-                            <th>Valor (R$)</th>
+                            <th>Total Funcionários</th>
+                            <th>Total Metros (m)</th>
+                            <th>Total Valor (R$)</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
             
+            // Loop para gerar uma linha de resumo por apontamento
             data.forEach(apontamento => {
+                const dataFormatada = apontamento.data_corte ? apontamento.data_corte.split('T')[0].split('-').reverse().join('/') : 'N/A';
+                
+                let totalMetros = 0;
+                let totalValor = 0;
+                let numFuncionarios = 0;
+
+                // Consolida os totais para este apontamento
                 if (apontamento.cortes_funcionarios && apontamento.cortes_funcionarios.length > 0) {
+                    numFuncionarios = apontamento.cortes_funcionarios.length;
                     apontamento.cortes_funcionarios.forEach(corte => {
-                        const dataFormatada = apontamento.data_corte ? apontamento.data_corte.split('T')[0].split('-').reverse().join('/') : 'N/A';
-                        
-                        // Determinar o tipo de apontamento para a tabela
-                        const tipoApontamento = (apontamento.fazendas?.nome && apontamento.talhoes?.numero) ? 'Corte' : 'Diária';
-                        
-                        html += `
-                            <tr>
-                                <td>${dataFormatada}</td>
-                                <td>${tipoApontamento}</td>
-                                <td>${apontamento.turma || 'N/A'}</td>
-                                <td>${apontamento.fazendas?.nome || 'N/A (Diária)'}</td>
-                                <td>${apontamento.talhoes?.numero || 'N/A (Diária)'}</td>
-                                <td>${corte.funcionarios?.nome || 'N/A'} (${corte.funcionarios?.turmas?.nome || 'Sem turma'})</td>
-                                <td>${corte.metros ? corte.metros.toFixed(2) : '0.00'}</td>
-                                <td>R$ ${corte.valor ? corte.valor.toFixed(2) : '0.00'}</td>
-                            </tr>
-                        `;
+                        // Se for diária, metros é 0.01, mas para exibição o valor real é 0, ou seja, não precisa somar.
+                        // Vamos considerar a metragem apenas se for maior que 0.01 (metragem real)
+                        if (corte.metros && corte.metros > 0.01) { 
+                             totalMetros += corte.metros;
+                        }
+                        totalValor += corte.valor || 0;
                     });
-                } else {
-                    // Caso não haja cortes, mostrar pelo menos os dados básicos
-                    const dataFormatada = apontamento.data_corte ? apontamento.data_corte.split('T')[0].split('-').reverse().join('/') : 'N/A';
-                    
-                    html += `
-                        <tr>
-                            <td>${dataFormatada}</td>
-                            <td>Desconhecido</td>
-                            <td>${apontamento.turma || 'N/A'}</td>
-                            <td>${apontamento.fazendas?.nome || 'N/A'}</td>
-                            <td>${apontamento.talhoes?.numero || 'N/A'}</td>
-                            <td colspan="3" style="text-align: center;">Nenhum funcionário associado</td>
-                        </tr>
-                    `;
                 }
+                
+                const isDiaria = !apontamento.fazendas?.nome || totalMetros === 0;
+                const tipoApontamento = isDiaria ? 'Diária' : 'Corte';
+                const metrosExibicao = totalMetros > 0 ? totalMetros.toFixed(2) : 'N/A';
+                
+                // Gera a linha de resumo
+                html += `
+                    <tr>
+                        <td>${dataFormatada}</td>
+                        <td>${tipoApontamento}</td>
+                        <td>${apontamento.turma || 'N/A'}</td>
+                        <td>${apontamento.fazendas?.nome || 'N/A (Diária)'}</td>
+                        <td>${apontamento.talhoes?.numero || 'N/A (Diária)'}</td>
+                        <td>${numFuncionarios}</td>
+                        <td>${metrosExibicao}</td>
+                        <td>R$ ${totalValor.toFixed(2)}</td>
+                    </tr>
+                `;
             });
             
             html += '</tbody></table>';
