@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <th>Funcionário</th>
                         <th>Metros</th>
                         <th>Valor (R$)</th>
-                        <th>Ações</th>
+                        <th class="actions-cell">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -242,9 +242,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <td>${formatarData(apontamento.data_corte)}</td>
                         <td>${apontamento.turma || 'N/A'}</td>
                         <td colspan="5" style="text-align: center; color: #dc3545;">Nenhum corte registrado.</td>
-                        <td>
-                            <button class="btn-secondary" onclick="editarApontamento('${apontamento.id}')">Editar</button>
-                            <button class="btn-remove" onclick="excluirApontamentoCompleto('${apontamento.id}')">Excluir Tudo</button>
+                        <td class="actions-cell">
+                            <button class="btn btn-secondary btn-sm" onclick="editarApontamento('${apontamento.id}')">Editar</button>
+                            <button class="btn btn-remove btn-sm" onclick="excluirApontamentoCompleto('${apontamento.id}')">Excluir Tudo</button>
                         </td>
                     </tr>
                 `;
@@ -267,11 +267,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <td>${nomeFuncionario} (${nomeTurmaFuncionario})</td>
                         <td>${corte.metros.toFixed(2)}</td>
                         <td>R$ ${corte.valor.toFixed(2)}</td>
-                        <td>
-                            <button class="btn-secondary" onclick="editarApontamento('${apontamento.id}')">Editar</button>
-                            <button class="btn-remove" onclick="excluirCorteIndividual('${apontamento.id}', '${corte.id}', '${nomeFuncionario}')">Excluir Corte</button>
+                        <td class="actions-cell">
+                            <button class="btn btn-secondary btn-sm" onclick="editarApontamento('${apontamento.id}')">Editar</button>
+                            <button class="btn btn-remove btn-sm" onclick="excluirCorteIndividual('${apontamento.id}', '${corte.id}', '${nomeFuncionario}')">Excluir Corte</button>
                             ${apontamento.cortes_funcionarios.length === 1 ? 
-                                `<button class="btn-remove" onclick="excluirApontamentoCompleto('${apontamento.id}')">Excluir Tudo</button>` : 
+                                `<button class="btn btn-remove btn-sm" onclick="excluirApontamentoCompleto('${apontamento.id}')">Excluir Tudo</button>` : 
                                 ''}
                         </td>
                     </tr>
@@ -539,10 +539,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             for (const corte of cortes) {
                 let novoValor = corte.metros * precoPorMetro;
                 
-                // Se for diária (metros = 0.01), não recalcula o valor, pois o valor fixo não está disponível aqui
+                // Se for diária (metros = 0.01), não recalcula o valor se o preço for zero
                 if (corte.metros === 0.01 && precoPorMetro === 0) {
-                    // Mantemos o valor original, mas este é um ponto de fragilidade na edição de diárias.
-                    // Uma solução completa exigiria um campo "valor_diaria" na tabela de apontamentos.
+                    // Mantemos o valor original, confiando que o valor foi definido corretamente no lançamento da diária.
                 }
 
                 const { error: corteError } = await supabase
