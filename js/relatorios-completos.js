@@ -1,4 +1,4 @@
-// js/relatorios-completos.js - SISTEMA DE RELATÓRIOS COMPLETOS COM PDF PROFISSIONAL
+// js/relatorios-completos.js - SISTEMA DE RELATÓRIOS COMPLETOS COM PDF PROFISSIONAL E EXCEL
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Elementos do DOM
@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const semDados = document.getElementById('sem-dados');
     const imprimirBtn = document.getElementById('imprimir-relatorio');
     const exportarPdfBtn = document.getElementById('exportar-pdf');
+    const exportarExcelBtn = document.getElementById('exportar-excel'); // Novo botão
     
     // Variáveis para armazenar dados
     let funcionarios = [];
@@ -191,6 +192,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         if (exportarPdfBtn) {
             exportarPdfBtn.addEventListener('click', exportarPDFProfissional);
+        }
+
+        // NOVO: Adiciona listener para o botão de exportar para Excel
+        if (exportarExcelBtn) {
+            exportarExcelBtn.addEventListener('click', exportarExcel);
         }
     }
 
@@ -487,6 +493,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Função para exportar PDF profissional
     async function exportarPDFProfissional() {
+        if (dadosRelatorio.length === 0) {
+            mostrarMensagem('Gere o relatório primeiro ou não há dados para exportar.', 'error');
+            return;
+        }
+
         try {
             mostrarMensagem('Gerando PDF profissional...', 'success');
             
@@ -605,6 +616,72 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    // NOVO: Função para exportar para Excel (CSV)
+    function exportarExcel() {
+        if (dadosRelatorio.length === 0) {
+            mostrarMensagem('Gere o relatório primeiro ou não há dados para exportar.', 'error');
+            return;
+        }
+
+        try {
+            mostrarMensagem('Preparando exportação para Excel...', 'success');
+
+            const headers = [
+                "Data", 
+                "Funcionário", 
+                "Turma", 
+                "Fazenda", 
+                "Talhão", 
+                "Metros (m)", 
+                "Valor (R$)"
+            ].join(';');
+
+            const csvData = dadosRelatorio.map(item => {
+                const apontamento = item.apontamentos;
+                const funcionario = item.funcionarios;
+
+                const data = formatarData(apontamento?.data_corte);
+                const nomeFuncionario = funcionario?.nome || 'N/A';
+                const nomeTurma = funcionario?.turmas?.nome || 'Sem turma';
+                const nomeFazenda = apontamento?.fazendas?.nome || 'N/A';
+                const numTalhao = apontamento?.talhoes?.numero || 'N/A';
+                const metros = item.metros?.toFixed(2).replace('.', ',') || '0,00';
+                const valor = item.valor?.toFixed(2).replace('.', ',') || '0,00';
+
+                return [
+                    data, 
+                    `"${nomeFuncionario}"`, // Aspas para nomes com espaços
+                    `"${nomeTurma}"`,
+                    `"${nomeFazenda}"`,
+                    numTalhao,
+                    metros,
+                    valor
+                ].join(';');
+            }).join('\n');
+
+            const csvContent = headers + '\n' + csvData;
+            
+            // Cria o Blob e o link para download
+            const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const fileName = `relatorio_producao_${new Date().toISOString().split('T')[0]}.csv`;
+
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            mostrarMensagem('Exportação para Excel concluída!', 'success');
+
+        } catch (error) {
+            console.error('Erro ao exportar para Excel:', error);
+            mostrarMensagem('Erro ao exportar para Excel: ' + error.message, 'error');
+        }
+    }
+
     // Função para imprimir relatório
     function imprimirRelatorio() {
         window.print();
@@ -632,7 +709,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     function formatarData(data) {
         if (!data) return 'N/A';
         
-        // CORREÇÃO APLICADA: Converte para string se for um objeto Date
+        // CORREÇÃO: Converte para string se for um objeto Date
         let dataString = data instanceof Date ? data.toISOString() : String(data);
         
         // Manipulamos a string de data diretamente para o formato DD/MM/YYYY.

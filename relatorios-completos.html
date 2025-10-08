@@ -28,19 +28,16 @@
 
     <main class="main">
         <div class="container">
-            <!-- Loading -->
             <div id="loading" class="loading">
                 <div class="spinner"></div>
                 <p>Carregando sistema de relatórios...</p>
             </div>
 
-            <!-- Conteúdo Principal -->
             <div id="content" style="display: none;">
                 <div class="card">
                     <h2>📊 Relatórios Completos - Espelho de Produção</h2>
                     <p>Gere relatórios detalhados de produção por funcionário, turma ou geral</p>
                     
-                    <!-- Painel de Filtros -->
                     <div class="filters-panel no-print">
                         <h3>🔍 Filtros do Relatório</h3>
                         
@@ -118,14 +115,12 @@
                         </div>
                     </div>
                     
-                    <!-- Mensagem de Erro -->
                     <div id="error-message" class="error-message" style="display: none;">
                         <h3>Erro de Conexão</h3>
                         <p>Não foi possível conectar ao banco de dados.</p>
                         <button onclick="location.reload()" class="btn btn-primary">Tentar Novamente</button>
                     </div>
                     
-                    <!-- Mensagem de nenhum dado -->
                     <div id="sem-dados" class="no-data-message">
                         <div style="font-size: 4rem;">📭</div>
                         <h3>Nenhum dado encontrado</h3>
@@ -133,14 +128,12 @@
                         <p>Selecione os filtros e clique em "Gerar Relatório".</p>
                     </div>
                     
-                    <!-- Conteúdo do Relatório -->
                     <div id="relatorio-container" class="report-content">
                         <div class="report-header">
                             <h1 style="margin: 0; color: white; font-size: 2.2rem;">ESPELHO DE PRODUÇÃO - CORTE DE CANA</h1>
                             <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 1.1rem;">Relatório detalhado de produção</p>
                         </div>
                         
-                        <!-- Informações do Relatório -->
                         <div class="info-grid">
                             <div class="info-card">
                                 <div class="info-label">Tipo de Relatório</div>
@@ -160,7 +153,6 @@
                             </div>
                         </div>
                         
-                        <!-- Cartões de Resumo -->
                         <div class="summary-cards">
                             <div class="summary-card">
                                 <div class="summary-label">Total de Dias</div>
@@ -184,17 +176,18 @@
                             </div>
                         </div>
                         
-                        <!-- Botões de Ação -->
                         <div class="action-buttons no-print">
                             <button id="exportar-pdf" class="btn-pdf">
                                 📥 Exportar PDF Profissional
+                            </button>
+                            <button id="exportar-excel" class="btn-pdf btn-print" style="background-color: #1e7e34;">
+                                📑 Exportar Excel
                             </button>
                             <button id="imprimir-relatorio" class="btn-pdf btn-print">
                                 🖨️ Imprimir Relatório
                             </button>
                         </div>
                         
-                        <!-- Tabela de Detalhes -->
                         <div>
                             <h3>📋 Detalhamento da Produção</h3>
                             <div class="table-container">
@@ -211,8 +204,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="detalhes-producao">
-                                        <!-- Dados serão preenchidos via JavaScript -->
-                                    </tbody>
+                                        </tbody>
                                 </table>
                             </div>
                         </div>
