@@ -1,4 +1,4 @@
-// main.js - VERSÃO CORRIGIDA - CONSTRAINT RESOLVIDA
+// main.js - VERSÃO CORRIGIDA - COM APONTAMENTO NA DIÁRIA
 document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação usando o sistema customizado
     const usuario = window.sistemaAuth?.verificarAutenticacao();
@@ -75,27 +75,35 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Função para inicializar a aplicação
     async function inicializarAplicacao() {
         const apontamentoForm = document.getElementById('apontamento-form');
-        const funcionariosContainer = document.getElementById('funcionarios-container');
+        const apontamentoDiariaForm = document.getElementById('apontamento-diaria-form'); // Novo formulário
         const addFuncionarioBtn = document.getElementById('add-funcionario');
-        const apontamentosList = document.getElementById('apontamentos-list');
+        const addFuncionarioDiariaBtn = document.getElementById('add-funcionario-diaria'); // Novo botão
         const fazendaSelect = document.getElementById('fazenda');
-        const talhaoSelect = document.getElementById('talhao');
-        const turmaSelect = document.getElementById('turma');
 
         try {
             // Carregar dados iniciais
             await carregarFazendas();
             await carregarTurmas();
+            await carregarTurmasDiaria(); // Carregar turmas para o form Diária
             await carregarFuncionariosIniciais();
+            await carregarFuncionariosDiariaIniciais(); // Carregar funcionário inicial para o form Diária
             await carregarApontamentosRecentes();
             
             // Configurar event listeners
             if (addFuncionarioBtn) {
                 addFuncionarioBtn.addEventListener('click', adicionarFuncionario);
             }
+
+            if (addFuncionarioDiariaBtn) { // NOVO listener
+                addFuncionarioDiariaBtn.addEventListener('click', adicionarFuncionarioDiaria);
+            }
             
             if (apontamentoForm) {
                 apontamentoForm.addEventListener('submit', salvarApontamento);
+            }
+
+            if (apontamentoDiariaForm) { // NOVO listener
+                apontamentoDiariaForm.addEventListener('submit', salvarApontamentoDiaria);
             }
             
             if (fazendaSelect) {
@@ -110,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para carregar turmas do banco de dados
+    // Função para carregar turmas do banco de dados para o formulário Corte
     async function carregarTurmas() {
         const turmaSelect = document.getElementById('turma');
         if (!turmaSelect) return;
@@ -131,11 +139,39 @@ document.addEventListener('DOMContentLoaded', async function() {
                 turmaSelect.appendChild(option);
             });
 
-            console.log(`✅ ${data.length} turmas carregadas`);
+            console.log(`✅ ${data.length} turmas carregadas para Corte`);
 
         } catch (error) {
             console.error('Erro ao carregar turmas:', error);
             mostrarMensagem('Erro ao carregar turmas', 'error');
+        }
+    }
+
+    // NOVO: Função para carregar turmas para o formulário Diária
+    async function carregarTurmasDiaria() {
+        const turmaSelect = document.getElementById('turma-diaria');
+        if (!turmaSelect) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('turmas')
+                .select('id, nome')
+                .order('nome');
+                
+            if (error) throw error;
+            
+            turmaSelect.innerHTML = '<option value="">Selecione a turma</option>';
+            data.forEach(turma => {
+                const option = document.createElement('option');
+                option.value = turma.id;
+                option.textContent = turma.nome;
+                turmaSelect.appendChild(option);
+            });
+
+            console.log(`✅ ${data.length} turmas carregadas para Diária`);
+
+        } catch (error) {
+            console.error('Erro ao carregar turmas para Diária:', error);
         }
     }
 
@@ -167,7 +203,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }, 5000);
     }
 
-    // Função para adicionar campo de funcionário
+    // Função para adicionar campo de funcionário (Corte)
     function adicionarFuncionario() {
         const funcionariosContainer = document.getElementById('funcionarios-container');
         if (!funcionariosContainer) return;
@@ -199,6 +235,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             removeBtn.addEventListener('click', function() {
                 funcionarioItem.remove();
             });
+            removeBtn.style.display = 'inline-block';
         }
         
         // Carregar funcionários no select
@@ -207,12 +244,58 @@ document.addEventListener('DOMContentLoaded', async function() {
             carregarFuncionarios(selectElement);
         }
     }
+    
+    // NOVO: Função para adicionar campo de funcionário (Diária)
+    function adicionarFuncionarioDiaria() {
+        const funcionariosContainer = document.getElementById('funcionarios-diaria-container');
+        if (!funcionariosContainer) return;
+        
+        const funcionarioItem = document.createElement('div');
+        funcionarioItem.className = 'funcionario-item';
+        
+        funcionarioItem.innerHTML = `
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Funcionário</label>
+                    <select class="funcionario-select-diaria" required>
+                        <option value="">Selecione o funcionário</option>
+                    </select>
+                </div>
+                <button type="button" class="btn-remove">×</button>
+            </div>
+        `;
+        
+        funcionariosContainer.appendChild(funcionarioItem);
+        
+        // Adicionar evento de remoção
+        const removeBtn = funcionarioItem.querySelector('.btn-remove');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                funcionarioItem.remove();
+            });
+            removeBtn.style.display = 'inline-block';
+        }
+        
+        // Carregar funcionários no select
+        const selectElement = funcionarioItem.querySelector('.funcionario-select-diaria');
+        if (selectElement) {
+            carregarFuncionariosDiaria(selectElement);
+        }
+    }
 
-    // Função para carregar funcionários iniciais
+    // Função para carregar funcionários iniciais (Corte)
     async function carregarFuncionariosIniciais() {
         const primeiroSelect = document.querySelector('.funcionario-select');
         if (primeiroSelect) {
             await carregarFuncionarios(primeiroSelect);
+        }
+    }
+    
+    // NOVO: Função para carregar funcionários iniciais (Diária)
+    async function carregarFuncionariosDiariaIniciais() {
+        const primeiroSelect = document.querySelector('.funcionario-select-diaria');
+        if (primeiroSelect) {
+            await carregarFuncionariosDiaria(primeiroSelect);
         }
     }
 
@@ -286,7 +369,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para carregar funcionários
+    // Função para carregar funcionários (Corte)
     async function carregarFuncionarios(selectElement) {
         if (!selectElement) return;
         
@@ -315,6 +398,36 @@ document.addEventListener('DOMContentLoaded', async function() {
             selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
         }
     }
+    
+    // NOVO: Função para carregar funcionários (Diária)
+    async function carregarFuncionariosDiaria(selectElement) {
+        if (!selectElement) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('funcionarios')
+                .select(`
+                    id, 
+                    nome, 
+                    turmas(nome)
+                `)
+                .order('nome');
+                
+            if (error) throw error;
+            
+            selectElement.innerHTML = '<option value="">Selecione o funcionário</option>';
+            data.forEach(funcionario => {
+                const option = document.createElement('option');
+                option.value = funcionario.id;
+                option.textContent = `${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
+                selectElement.appendChild(option);
+            });
+
+        } catch (error) {
+            console.error('Erro ao carregar funcionários para Diária:', error);
+            selectElement.innerHTML = '<option value="">Erro ao carregar funcionários</option>';
+        }
+    }
 
     // Função para calcular preço por metro
     function calcularPrecoPorMetro(talhaoData) {
@@ -325,9 +438,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         return parseFloat(precoPorMetro.toFixed(4));
     }
 
-    // ✅ FUNÇÃO CORRIGIDA - MAPEAMENTO PARA OS VALORES PERMITIDOS
+    // Mapeamento para os valores permitidos na coluna 'turma' (se houver enum/constraint)
     function mapearTurmaParaValorPermitido(turmaNome) {
-        // Mapeamento baseado na constraint: 'turma1', 'turma2', 'turma3'
         const mapeamento = {
             'Turma A': 'turma1',
             'Turma B': 'turma2',
@@ -337,10 +449,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             'Turma F': 'turma3'  // Fallback
         };
         
-        return mapeamento[turmaNome] || 'turma1'; // Default para turma1
+        return mapeamento[turmaNome] || 'turma1';
     }
 
-    // FUNÇÃO SALVAR APONTAMENTO - CORRIGIDA
+    // FUNÇÃO SALVAR APONTAMENTO - CORTE (Metragem)
     async function salvarApontamento(e) {
         e.preventDefault();
         
@@ -364,7 +476,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // Coletar dados dos funcionários
-        const funcionariosItens = document.querySelectorAll('.funcionario-item');
+        const funcionariosItens = document.querySelectorAll('#funcionarios-container .funcionario-item');
         const cortes = [];
         
         if (funcionariosItens.length === 0) {
@@ -399,12 +511,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Calcular preço por metro
             const precoPorMetro = calcularPrecoPorMetro(talhaoData);
-            console.log('Preço por metro calculado:', precoPorMetro);
             
             const usuarioLogado = window.sistemaAuth?.verificarAutenticacao();
             const usuarioId = usuarioLogado?.id || 'usuario-desconhecido';
             
-            // ✅ BUSCAR O NOME DA TURMA DO BANCO
+            // BUSCAR O NOME DA TURMA DO BANCO
             const { data: turmaData, error: turmaError } = await supabase
                 .from('turmas')
                 .select('nome')
@@ -412,31 +523,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .single();
                 
             if (turmaError) {
-                console.error('Erro ao buscar turma:', turmaError);
                 throw new Error('Turma selecionada não encontrada no banco de dados');
             }
             
             const turmaNomeOriginal = turmaData?.nome || 'Turma A';
-            
-            // ✅ CORREÇÃO CRÍTICA: MAPEAR PARA OS VALORES PERMITIDOS
             const turmaPermitida = mapearTurmaParaValorPermitido(turmaNomeOriginal);
-            
-            console.log('Turma original:', turmaNomeOriginal);
-            console.log('Turma mapeada (permitida):', turmaPermitida);
             
             // Dados do apontamento - USANDO VALOR PERMITIDO
             const dadosApontamento = {
                 data_corte: dataCorte,
-                turma: turmaPermitida, // ✅ VALOR QUE PASSA NA CONSTRAINT
+                turma: turmaPermitida,
                 fazenda_id: fazendaId,
                 talhao_id: talhaoId,
                 preco_por_metro: precoPorMetro,
                 usuario_id: usuarioId
             };
             
-            console.log('Dados do apontamento:', dadosApontamento);
-            
-            // ✅ INSERIR APONTAMENTO (AGORA DEVE FUNCIONAR)
+            // INSERIR APONTAMENTO
             const { data: apontamento, error: apontamentoError } = await supabase
                 .from('apontamentos')
                 .insert(dadosApontamento)
@@ -447,8 +550,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.error('Erro ao salvar apontamento:', apontamentoError);
                 throw apontamentoError;
             }
-            
-            console.log('✅ Apontamento salvo com sucesso:', apontamento);
             
             // Preparar cortes dos funcionários
             const cortesComApontamentoId = cortes.map(corte => ({
@@ -465,48 +566,134 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
             if (cortesError) throw cortesError;
             
-            mostrarMensagem('Apontamento salvo com sucesso!');
+            mostrarMensagem('Apontamento de Corte salvo com sucesso!');
             
-            // Limpar formulário
-            apontamentoForm.reset();
-            
-            // Configurar data atual
-            const dataCorteInput = document.getElementById('data-corte');
-            if (dataCorteInput) {
-                const hoje = new Date().toISOString().split('T')[0];
-                dataCorteInput.value = hoje;
-            }
-            
-            funcionariosContainer.innerHTML = `
-                <div class="funcionario-item">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Funcionário</label>
-                            <select class="funcionario-select" required>
-                                <option value="">Selecione o funcionário</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Metros Cortados</label>
-                            <input type="number" class="metros-input" step="0.01" min="0" required>
-                        </div>
-                        <button type="button" class="btn-remove" style="display: none;">×</button>
-                    </div>
-                </div>
-            `;
+            // Limpar formulário (Chamando a função de limpar que está no index.html)
+            document.getElementById('limpar-form-corte')?.click();
             
             // Recarregar dados
-            await carregarTurmas();
             await carregarFuncionariosIniciais();
             await carregarApontamentosRecentes();
             
         } catch (error) {
-            console.error('Erro ao salvar apontamento:', error);
-            mostrarMensagem('Erro ao salvar apontamento: ' + error.message, 'error');
+            console.error('Erro ao salvar apontamento de corte:', error);
+            mostrarMensagem('Erro ao salvar apontamento de corte: ' + error.message, 'error');
         }
     }
 
-    // Função para carregar apontamentos recentes
+    // NOVO: FUNÇÃO SALVAR APONTAMENTO - DIÁRIA (Valor Fixo)
+    async function salvarApontamentoDiaria(e) {
+        e.preventDefault();
+
+        const apontamentoDiariaForm = document.getElementById('apontamento-diaria-form');
+        const funcionariosDiariaContainer = document.getElementById('funcionarios-diaria-container');
+        
+        if (!apontamentoDiariaForm || !funcionariosDiariaContainer) return;
+
+        const dataDiaria = document.getElementById('data-diaria')?.value;
+        const turmaDiariaSelect = document.getElementById('turma-diaria');
+        const turmaId = turmaDiariaSelect?.value;
+        const valorDiaria = document.getElementById('valor-diaria')?.value;
+
+        // Validações
+        if (!dataDiaria || !turmaId || !valorDiaria || parseFloat(valorDiaria) <= 0) {
+            mostrarMensagem('Preencha a data, a turma e o valor da diária.', 'error');
+            return;
+        }
+
+        // Coletar IDs dos funcionários selecionados
+        const funcionariosDiariaItens = document.querySelectorAll('#funcionarios-diaria-container .funcionario-item');
+        const funcionariosDiariaIds = [];
+        
+        if (funcionariosDiariaItens.length === 0) {
+            mostrarMensagem('Adicione pelo menos um funcionário.', 'error');
+            return;
+        }
+
+        for (const item of funcionariosDiariaItens) {
+            const funcionarioSelect = item.querySelector('.funcionario-select-diaria');
+            if (funcionarioSelect?.value) {
+                funcionariosDiariaIds.push(funcionarioSelect.value);
+            }
+        }
+        
+        if (funcionariosDiariaIds.length === 0) {
+            mostrarMensagem('Selecione pelo menos um funcionário válido.', 'error');
+            return;
+        }
+
+        try {
+            const usuarioLogado = window.sistemaAuth?.verificarAutenticacao();
+            const usuarioId = usuarioLogado?.id || 'usuario-desconhecido';
+            
+            // BUSCAR NOME DA TURMA (para mapeamento de constraint)
+            const { data: turmaData, error: turmaError } = await supabase
+                .from('turmas')
+                .select('nome')
+                .eq('id', turmaId)
+                .single();
+                
+            if (turmaError) {
+                throw new Error('Turma selecionada não encontrada no banco de dados');
+            }
+            
+            const turmaNomeOriginal = turmaData?.nome || 'Turma A';
+            const turmaPermitida = mapearTurmaParaValorPermitido(turmaNomeOriginal);
+            
+            // Dados do apontamento (Diária) - Observação: Fazenda/Talhão e Preço/Metro ficam NULOS
+            const dadosApontamento = {
+                data_corte: dataDiaria,
+                turma: turmaPermitida,
+                fazenda_id: null,
+                talhao_id: null,
+                preco_por_metro: 0, // 0 pois não é por metro
+                usuario_id: usuarioId
+            };
+
+            // INSERIR APONTAMENTO PRINCIPAL
+            const { data: apontamento, error: apontamentoError } = await supabase
+                .from('apontamentos')
+                .insert(dadosApontamento)
+                .select()
+                .single();
+                
+            if (apontamentoError) {
+                    console.error('Erro ao salvar apontamento diária:', apontamentoError);
+                    throw apontamentoError;
+            }
+
+            // Preparar cortes dos funcionários (Metros = 0.01, Valor = Valor da Diária)
+            const valorFixo = parseFloat(valorDiaria);
+            const cortesComApontamentoId = funcionariosDiariaIds.map(funcionarioId => ({
+                apontamento_id: apontamento.id,
+                funcionario_id: funcionarioId,
+                metros: 0.01, // CORREÇÃO: Valor mínimo para satisfazer a constraint "cortes_funcionarios_metros_check"
+                valor: valorFixo // Valor total é o valor da diária
+            }));
+            
+            // Inserir cortes
+            const { error: cortesError } = await supabase
+                .from('cortes_funcionarios')
+                .insert(cortesComApontamentoId);
+                
+            if (cortesError) throw cortesError;
+            
+            mostrarMensagem('Apontamento na Diária salvo com sucesso!');
+            
+            // Limpar formulário (Chamando a função de limpar que está no index.html)
+            document.getElementById('limpar-form-diaria')?.click();
+
+            // Recarregar dados
+            await carregarFuncionariosDiariaIniciais();
+            await carregarApontamentosRecentes();
+
+        } catch (error) {
+            console.error('Erro ao salvar apontamento diária:', error);
+            mostrarMensagem('Erro ao salvar apontamento diária: ' + error.message, 'error');
+        }
+    }
+
+    // Função para carregar apontamentos recentes (LIMITADO A 5 LINHAS)
     async function carregarApontamentosRecentes() {
         const apontamentosList = document.getElementById('apontamentos-list');
         if (!apontamentosList) return;
@@ -527,7 +714,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     )
                 `)
                 .order('data_corte', { ascending: false })
-                .limit(10);
+                .order('id', { ascending: false }) // Ordem secundária para garantir os mais recentes
+                .limit(5); // <-- LIMITE DE 5 LINHAS APLICADO
                 
             if (error) throw error;
             
@@ -541,6 +729,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <thead>
                         <tr>
                             <th>Data</th>
+                            <th>Tipo</th>
                             <th>Turma</th>
                             <th>Fazenda</th>
                             <th>Talhão</th>
@@ -557,12 +746,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                     apontamento.cortes_funcionarios.forEach(corte => {
                         const dataFormatada = apontamento.data_corte ? apontamento.data_corte.split('T')[0].split('-').reverse().join('/') : 'N/A';
                         
+                        // Determinar o tipo de apontamento para a tabela
+                        const tipoApontamento = (apontamento.fazendas?.nome && apontamento.talhoes?.numero) ? 'Corte' : 'Diária';
+                        
                         html += `
                             <tr>
                                 <td>${dataFormatada}</td>
+                                <td>${tipoApontamento}</td>
                                 <td>${apontamento.turma || 'N/A'}</td>
-                                <td>${apontamento.fazendas?.nome || 'N/A'}</td>
-                                <td>${apontamento.talhoes?.numero || 'N/A'}</td>
+                                <td>${apontamento.fazendas?.nome || 'N/A (Diária)'}</td>
+                                <td>${apontamento.talhoes?.numero || 'N/A (Diária)'}</td>
                                 <td>${corte.funcionarios?.nome || 'N/A'} (${corte.funcionarios?.turmas?.nome || 'Sem turma'})</td>
                                 <td>${corte.metros ? corte.metros.toFixed(2) : '0.00'}</td>
                                 <td>R$ ${corte.valor ? corte.valor.toFixed(2) : '0.00'}</td>
@@ -576,6 +769,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     html += `
                         <tr>
                             <td>${dataFormatada}</td>
+                            <td>Desconhecido</td>
                             <td>${apontamento.turma || 'N/A'}</td>
                             <td>${apontamento.fazendas?.nome || 'N/A'}</td>
                             <td>${apontamento.talhoes?.numero || 'N/A'}</td>

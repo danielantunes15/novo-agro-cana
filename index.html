@@ -7,6 +7,35 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/apontamentos.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Adicionar estilos simples para a estrutura de abas, pode ser refinado em css/style.css ou css/apontamentos.css */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab-btn {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #6c757d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            color: #2c7744;
+            border-bottom: 3px solid #2c7744;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <header class="header">
@@ -33,67 +62,123 @@
 
             <div id="content" style="display: none;">
                 <div class="card">
-                    <h2>Novo Apontamento de Corte</h2>
+                    <h2>Lançamento de Apontamentos</h2>
                     
-                    <form id="apontamento-form" class="form">
-                        <div class="form-group">
-                            <label for="data-corte">Data do Corte *</label>
-                            <input type="date" id="data-corte" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="turma">Turma *</label>
-                            <select id="turma" required>
-                                <option value="">Selecione a turma</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="fazenda">Fazenda *</label>
-                            <select id="fazenda" required>
-                                <option value="">Selecione a fazenda</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="talhao">Talhão *</label>
-                            <select id="talhao" required>
-                                <option value="">Selecione o talhão</option>
-                            </select>
-                        </div>
-                        
-                        <div class="funcionarios-section">
-                            <h3>Funcionários</h3>
-                            <div id="funcionarios-container">
-                                <div class="funcionario-item">
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label>Funcionário *</label>
-                                            <select class="funcionario-select" required>
-                                                <option value="">Selecione o funcionário</option>
-                                            </select>
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="corte">Corte de Cana (Metragem)</button>
+                        <button class="tab-btn" data-tab="diaria">Apontamento na Diária</button>
+                    </div>
+
+                    <div id="corte" class="tab-content active">
+                        <h3>Novo Apontamento de Corte</h3>
+                        <form id="apontamento-form" class="form">
+                            <div class="form-group">
+                                <label for="data-corte">Data do Corte *</label>
+                                <input type="date" id="data-corte" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="turma">Turma *</label>
+                                <select id="turma" required>
+                                    <option value="">Selecione a turma</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="fazenda">Fazenda *</label>
+                                <select id="fazenda" required>
+                                    <option value="">Selecione a fazenda</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="talhao">Talhão *</label>
+                                <select id="talhao" required>
+                                    <option value="">Selecione o talhão</option>
+                                </select>
+                            </div>
+                            
+                            <div class="funcionarios-section">
+                                <h3>Produção por Funcionário (Metros)</h3>
+                                <div id="funcionarios-container">
+                                    <div class="funcionario-item">
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label>Funcionário *</label>
+                                                <select class="funcionario-select" required>
+                                                    <option value="">Selecione o funcionário</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Metros Cortados *</label>
+                                                <input type="number" class="metros-input" step="0.01" min="0" required placeholder="0.00">
+                                            </div>
+                                            <button type="button" class="btn btn-danger btn-remove" style="display: none;">×</button>
                                         </div>
-                                        <div class="form-group">
-                                            <label>Metros Cortados *</label>
-                                            <input type="number" class="metros-input" step="0.01" min="0" required placeholder="0.00">
-                                        </div>
-                                        <button type="button" class="btn btn-danger btn-remove" style="display: none;">×</button>
                                     </div>
+                                </div>
+                                
+                                <button type="button" id="add-funcionario" class="btn btn-secondary">+ Adicionar Funcionário</button>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Salvar Apontamento de Corte</button>
+                                <button type="button" id="limpar-form-corte" class="btn btn-secondary">Limpar Formulário</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="diaria" class="tab-content">
+                        <h3>Apontamento na Diária (Valor Fixo)</h3>
+                        <form id="apontamento-diaria-form" class="form">
+                            <div class="form-group">
+                                <label for="data-diaria">Data da Diária *</label>
+                                <input type="date" id="data-diaria" required>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="turma-diaria">Turma *</label>
+                                    <select id="turma-diaria" required>
+                                        <option value="">Selecione a turma</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="valor-diaria">Valor da Diária (R$) *</label>
+                                    <input type="number" id="valor-diaria" step="0.01" min="0.01" required placeholder="Ex: 80.00">
                                 </div>
                             </div>
                             
-                            <button type="button" id="add-funcionario" class="btn btn-secondary">+ Adicionar Funcionário</button>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Salvar Apontamento</button>
-                            <button type="button" id="limpar-form" class="btn btn-secondary">Limpar Formulário</button>
-                        </div>
-                    </form>
+                            <div class="funcionarios-section">
+                                <h3>Funcionários na Diária</h3>
+                                <div id="funcionarios-diaria-container">
+                                    <div class="funcionario-item">
+                                        <div class="form-row">
+                                            <div class="form-group" style="flex: 1;">
+                                                <label>Funcionário *</label>
+                                                <select class="funcionario-select-diaria" required>
+                                                    <option value="">Selecione o funcionário</option>
+                                                </select>
+                                            </div>
+                                            <button type="button" class="btn btn-danger btn-remove" style="display: none;">×</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="button" id="add-funcionario-diaria" class="btn btn-secondary">+ Adicionar Funcionário</button>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Salvar Apontamento na Diária</button>
+                                <button type="button" id="limpar-form-diaria" class="btn btn-secondary">Limpar Formulário</button>
+                            </div>
+                        </form>
+                    </div>
+
                 </div>
                 
                 <div class="card">
-                    <h2>Apontamentos Recentes</h2>
+                    <h2>Apontamentos Recentes (Últimos 5)</h2>
                     <div id="apontamentos-list" class="table-container">
                         <p>Carregando apontamentos...</p>
                     </div>
@@ -123,11 +208,28 @@
         
         // Configurar data atual como padrão
         document.addEventListener('DOMContentLoaded', function() {
+            const hoje = new Date().toISOString().split('T')[0];
             const dataCorteInput = document.getElementById('data-corte');
-            if (dataCorteInput) {
-                const hoje = new Date().toISOString().split('T')[0];
-                dataCorteInput.value = hoje;
-            }
+            const dataDiariaInput = document.getElementById('data-diaria');
+
+            if (dataCorteInput) dataCorteInput.value = hoje;
+            if (dataDiariaInput) dataDiariaInput.value = hoje;
+
+            // Lógica para alternar abas
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
         });
     </script>
 
@@ -152,17 +254,16 @@
                 });
             }
 
-            // Botão para limpar formulário
-            const limparFormBtn = document.getElementById('limpar-form');
-            if (limparFormBtn) {
-                limparFormBtn.addEventListener('click', function() {
+            // Botão para limpar formulário de Corte
+            const limparFormCorteBtn = document.getElementById('limpar-form-corte');
+            if (limparFormCorteBtn) {
+                limparFormCorteBtn.addEventListener('click', function() {
                     const apontamentoForm = document.getElementById('apontamento-form');
                     const funcionariosContainer = document.getElementById('funcionarios-container');
                     
                     if (apontamentoForm) {
                         apontamentoForm.reset();
                         
-                        // Configurar data atual novamente
                         const dataCorteInput = document.getElementById('data-corte');
                         if (dataCorteInput) {
                             const hoje = new Date().toISOString().split('T')[0];
@@ -183,6 +284,41 @@
                                     <div class="form-group">
                                         <label>Metros Cortados *</label>
                                         <input type="number" class="metros-input" step="0.01" min="0" required placeholder="0.00">
+                                    </div>
+                                    <button type="button" class="btn btn-danger btn-remove" style="display: none;">×</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+            
+            // Botão para limpar formulário de Diária
+            const limparFormDiariaBtn = document.getElementById('limpar-form-diaria');
+            if (limparFormDiariaBtn) {
+                limparFormDiariaBtn.addEventListener('click', function() {
+                    const apontamentoDiariaForm = document.getElementById('apontamento-diaria-form');
+                    const funcionariosDiariaContainer = document.getElementById('funcionarios-diaria-container');
+                    
+                    if (apontamentoDiariaForm) {
+                        apontamentoDiariaForm.reset();
+                        
+                        const dataDiariaInput = document.getElementById('data-diaria');
+                        if (dataDiariaInput) {
+                            const hoje = new Date().toISOString().split('T')[0];
+                            dataDiariaInput.value = hoje;
+                        }
+                    }
+                    
+                    if (funcionariosDiariaContainer) {
+                         funcionariosDiariaContainer.innerHTML = `
+                            <div class="funcionario-item">
+                                <div class="form-row">
+                                    <div class="form-group" style="flex: 1;">
+                                        <label>Funcionário *</label>
+                                        <select class="funcionario-select-diaria" required>
+                                            <option value="">Selecione o funcionário</option>
+                                        </select>
                                     </div>
                                     <button type="button" class="btn btn-danger btn-remove" style="display: none;">×</button>
                                 </div>
