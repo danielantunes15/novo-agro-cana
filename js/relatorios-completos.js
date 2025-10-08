@@ -631,7 +631,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Funções auxiliares de formatação
     function formatarData(data) {
         if (!data) return 'N/A';
-        return new Date(data).toLocaleDateString('pt-BR');
+        
+        // CORREÇÃO APLICADA: Converte para string se for um objeto Date
+        let dataString = data instanceof Date ? data.toISOString() : String(data);
+        
+        // Manipulamos a string de data diretamente para o formato DD/MM/YYYY.
+        const datePart = dataString.split('T')[0]; // Garante que só pegamos a parte da data
+        const parts = datePart.split('-'); 
+
+        if (parts.length === 3) {
+            // Retorna no formato DD/MM/YYYY (parts[2] é o dia, parts[1] é o mês, parts[0] é o ano)
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        
+        // Fallback para datas que contenham fuso horário completo
+        try {
+            return new Date(dataString).toLocaleDateString('pt-BR');
+        } catch (e) {
+            return 'N/A';
+        }
     }
 
     // Configurar botão de logout
