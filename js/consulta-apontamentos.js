@@ -10,11 +10,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     const turmaFiltro = document.getElementById('turma-filtro');
     const fazendaFiltro = document.getElementById('fazenda-filtro');
     const limparFiltrosBtn = document.getElementById('limpar-filtros');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const pageInfo = document.getElementById('page-info');
 
-    // Variáveis para armazenar dados
+
+    // Variáveis para armazenar dados e estado de paginação
     let apontamentos = [];
     let fazendas = [];
     let turmas = [];
+    let currentPage = 1;
+    const itemsPerPage = 20;
+    let currentFilters = {};
+
 
     try {
         loadingElement.style.display = 'block';
@@ -31,6 +39,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         filtroForm.addEventListener('submit', aplicarFiltros);
         limparFiltrosBtn.addEventListener('click', limparFiltros);
+        prevPageBtn.addEventListener('click', () => mudarPagina(-1));
+        nextPageBtn.addEventListener('click', () => mudarPagina(1));
 
         // Configurar modal
         const closeModal = document.querySelector('.close');
@@ -140,7 +150,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         funcionario_id,
                         funcionarios(nome, turmas(nome))
                     )
-                `)
+                `, { count: 'exact' }) // Adicionado count: 'exact' para paginação
                 .order('data_corte', { ascending: false });
 
             // Aplicar filtros
@@ -160,12 +170,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 query = query.eq('fazenda_id', filtros.fazendaId);
             }
 
-            const { data, error } = await query;
+            // Paginação
+            const from = (currentPage - 1) * itemsPerPage;
+            const to = from + itemsPerPage - 1;
+            query = query.range(from, to);
+
+            const { data, error, count } = await query;
                 
             if (error) throw error;
             
             apontamentos = data || [];
             exibirApontamentos(apontamentos);
+            atualizarPaginacao(count); // Atualizar a navegação da página
             
         } catch (error) {
             console.error('Erro ao carregar apontamentos:', error);
@@ -246,6 +262,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         apontamentosList.innerHTML = html;
     }
 
+    function atualizarPaginacao(totalItems) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        pageInfo.textContent = `Página ${currentPage} de ${totalPages || 1}`;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+    }
+
+    function mudarPagina(direction) {
+        currentPage += direction;
+        carregarApontamentos(currentFilters);
+    }
+
     async function aplicarFiltros(e) {
         e.preventDefault();
         
@@ -254,12 +282,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const turma = turmaFiltro.value;
         const fazendaId = fazendaFiltro.value;
         
-        await carregarApontamentos({
-            dataInicio,
-            dataFim,
-            turma,
-            fazendaId
-        });
+        currentFilters = { dataInicio, dataFim, turma, fazendaId };
+        currentPage = 1;
+        await carregarApontamentos(currentFilters);
     }
 
     function limparFiltros() {
@@ -268,6 +293,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         turmaFiltro.value = '';
         fazendaFiltro.value = '';
         
+        currentFilters = {};
+        currentPage = 1;
         carregarApontamentos();
     }
 

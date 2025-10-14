@@ -6,11 +6,18 @@
  * @param {string} [tipo='success'] - O tipo de mensagem ('success' ou 'error').
  */
 function mostrarMensagem(mensagem, tipo = 'success') {
-    const mensagensAntigas = document.querySelectorAll('.alert-message');
+    const alertContainer = document.getElementById('alert-container');
+    if (!alertContainer) {
+        console.error('Contêiner de alerta não encontrado.');
+        return;
+    }
+
+    const mensagensAntigas = alertContainer.querySelectorAll('.alert-message');
     mensagensAntigas.forEach(msg => msg.remove());
 
     const mensagemDiv = document.createElement('div');
     mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
+    mensagemDiv.setAttribute('role', 'alert');
     mensagemDiv.innerHTML = `
         <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px; background-color: ${tipo === 'error' ? '#f8d7da' : '#d4edda'}; color: ${tipo === 'error' ? '#721c24' : '#155724'};">
             <strong>${tipo === 'error' ? '⚠️' : '✅'} </strong> ${mensagem}
@@ -18,10 +25,7 @@ function mostrarMensagem(mensagem, tipo = 'success') {
         </div>
     `;
     
-    const container = document.querySelector('.main .container');
-    if (container) {
-        container.prepend(mensagemDiv);
-    }
+    alertContainer.prepend(mensagemDiv);
 
     setTimeout(() => {
         if (mensagemDiv.parentElement) {

@@ -41,6 +41,7 @@
             <div id="content" style="display: none;">
                 <div class="card">
                     <h2>Consulta de Apontamentos</h2>
+                    <div id="alert-container" aria-live="polite"></div>
                     
                     <form id="filtro-form" class="form">
                         <div class="form-row">
@@ -82,6 +83,11 @@
                     <h2>Apontamentos</h2>
                     <div id="apontamentos-list" class="table-container">
                         </div>
+                    <div class="pagination">
+                        <button id="prev-page" class="btn btn-secondary">Anterior</button>
+                        <span id="page-info">Página 1 de 1</span>
+                        <button id="next-page" class="btn btn-secondary">Próxima</button>
+                    </div>
                 </div>
             </div>
 
@@ -94,10 +100,10 @@
     </main>
 
     <div id="modal-edicao" class="modal" style="display: none;">
-        <div class="modal-content">
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
             <div class="modal-header">
-                <h3>Editar Apontamento</h3>
-                <span class="close">&times;</span>
+                <h3 id="modal-titulo">Editar Apontamento</h3>
+                <span class="close" tabindex="0" role="button" aria-label="Fechar">&times;</span>
             </div>
             <div class="modal-body">
                 <form id="form-edicao">
