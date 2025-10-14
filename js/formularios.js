@@ -1,14 +1,18 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    const turmaSelect = document.getElementById('turma-select');
-    const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
-    const loadingElement = document.getElementById('loading');
-    const contentElement = document.getElementById('content');
-    const errorElement = document.getElementById('error-message');
+    // Autenticação
+    if (!window.sistemaAuth || !window.sistemaAuth.requerAutenticacao()) return;
 
-    // Função para carregar as turmas no select
+    // Elementos do DOM
+    const turmaSelect = document.getElementById('turma-select');
+    const gerarPreviewBtn = document.getElementById('gerar-preview-btn');
+    const gerarBrancoBtn = document.getElementById('gerar-branco-btn');
+    const imprimirBtn = document.getElementById('imprimir-btn');
+    const previewContainer = document.getElementById('preview-container');
+    const errorElement = document.getElementById('error-message');
+    
+    // Carrega as turmas no select
     async function carregarTurmas() {
         try {
-            loadingElement.style.display = 'block';
             const { data, error } = await supabase
                 .from('turmas')
                 .select('id, nome')
@@ -23,29 +27,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 option.textContent = turma.nome;
                 turmaSelect.appendChild(option);
             });
-
         } catch (error) {
             console.error('Erro ao carregar turmas:', error);
             errorElement.style.display = 'block';
-        } finally {
-            loadingElement.style.display = 'none';
+            mostrarMensagem('Falha ao carregar a lista de turmas.', 'error');
         }
     }
 
-    // Função para gerar o PDF
-    async function gerarPDF() {
+    // Gera a pré-visualização do formulário POR TURMA
+    async function gerarPreviewPorTurma() {
         const turmaId = turmaSelect.value;
         const turmaNome = turmaSelect.options[turmaSelect.selectedIndex].text;
-
+        
         if (!turmaId) {
-            mostrarMensagem('Por favor, selecione uma turma.', 'error');
+            mostrarMensagem('Por favor, selecione a turma.', 'error');
             return;
         }
 
         try {
-            loadingElement.style.display = 'block';
-
-            // Buscar funcionários da turma selecionada
             const { data: funcionarios, error } = await supabase
                 .from('funcionarios')
                 .select('nome')
@@ -54,61 +53,75 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (error) throw error;
 
-            if (funcionarios.length === 0) {
-                mostrarMensagem('Nenhum funcionário encontrado para esta turma.', 'error');
-                return;
-            }
-
-            // Iniciar a criação do PDF
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Cabeçalho do PDF
-            doc.setFontSize(18);
-            doc.text('Formulário de Apontamento Manual', 105, 20, null, null, 'center');
-            doc.setFontSize(12);
-            doc.text(`Turma: ${turmaNome}`, 20, 30);
-            doc.text(`Data: ___/___/______`, 150, 30);
-            doc.text('Fazenda/Talhão: ________________________', 20, 40);
-
-            // Tabela com os funcionários
-            const tableColumn = ["Funcionário", "Metros", "Valor (R$)", "Assinatura"];
-            const tableRows = [];
-
+            // Preenche o cabeçalho
+            document.getElementById('preview-turma').textContent = turmaNome;
+            
+            const tbody = document.getElementById('funcionarios-tbody');
+            tbody.innerHTML = '';
+            
+            // Adiciona funcionários da turma
             funcionarios.forEach(func => {
-                const row = [
-                    func.nome,
-                    '', // Deixar em branco para preenchimento manual
-                    '', // Deixar em branco
-                    ''  // Deixar em branco
-                ];
-                tableRows.push(row);
-            });
-
-            doc.autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: 50,
-                theme: 'striped',
-                headStyles: {
-                    fillColor: [44, 119, 68] // Verde do Agro Cana Forte
-                }
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${func.nome}</td>
+                    <td></td><td></td><td></td><td></td><td></td>
+                `;
+                tbody.appendChild(tr);
             });
             
-            // Salvar o PDF
-            doc.save(`formulario-apontamento-${turmaNome}.pdf`);
+            // Adiciona 5 linhas em branco extras para anotações
+            for (let i = 0; i < 5; i++) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td></td><td></td><td></td><td></td><td></td><td></td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            // Exibe o formulário
+            previewContainer.style.display = 'block';
+            imprimirBtn.style.display = 'inline-block';
+            mostrarMensagem('Formulário da turma gerado com sucesso!', 'success');
 
         } catch (error) {
-            console.error('Erro ao gerar PDF:', error);
-            mostrarMensagem('Erro ao gerar o PDF: ' + error.message, 'error');
-        } finally {
-            loadingElement.style.display = 'none';
+            console.error('Erro ao gerar preview:', error);
+            mostrarMensagem('Erro ao buscar funcionários: ' + error.message, 'error');
         }
     }
 
-    // Adicionar Event Listener ao botão
-    gerarPdfBtn.addEventListener('click', gerarPDF);
+    // Gera um formulário EM BRANCO com 45 linhas
+    function gerarFormularioEmBranco() {
+        // Limpa o campo de turma
+        document.getElementById('preview-turma').textContent = "__________________";
 
-    // Carregar as turmas ao iniciar a página
+        const tbody = document.getElementById('funcionarios-tbody');
+        tbody.innerHTML = '';
+            
+        // Adiciona 45 linhas totalmente em branco
+        for (let i = 0; i < 45; i++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        // Exibe o formulário
+        previewContainer.style.display = 'block';
+        imprimirBtn.style.display = 'inline-block';
+        mostrarMensagem('Formulário em branco gerado com sucesso!', 'success');
+    }
+
+    // Função de impressão
+    function imprimirFormulario() {
+        window.print();
+    }
+
+    // Event Listeners
+    gerarPreviewBtn.addEventListener('click', gerarPreviewPorTurma);
+    gerarBrancoBtn.addEventListener('click', gerarFormularioEmBranco);
+    imprimirBtn.addEventListener('click', imprimirFormulario);
+
+    // Inicialização
     await carregarTurmas();
 });

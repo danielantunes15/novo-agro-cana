@@ -15,10 +15,10 @@
     <meta name="theme-color" content="#2c7744">
 </head>
 <body>
-    <header class="header">
+    <header class="header no-print">
         <div class="container">
             <h1 class="logo">AGRO CANA FORTE</h1>
-            <button class="menu-toggle no-print" id="menu-toggle" aria-label="Abrir Menu">
+            <button class="menu-toggle" id="menu-toggle" aria-label="Abrir Menu">
                 &#9776; 
             </button>
             <nav class="nav" id="main-nav">
@@ -36,47 +36,101 @@
 
     <main class="main">
         <div class="container">
-            <div id="loading" class="card" style="display: none;">
-                <div class="spinner"></div>
-                <p style="text-align: center;">Carregando...</p>
-            </div>
+            <div id="alert-container" aria-live="polite" class="no-print"></div>
+            
+            <div class="card no-print">
+                <h2>Gerar Formulário para Impressão</h2>
+                <p>Selecione a turma ou gere um formulário em branco para preencher em campo.</p>
+                
+                <div class="form-group">
+                    <label for="turma-select">1. Gerar por Turma</label>
+                    <select id="turma-select" required>
+                        <option value="">Carregando turmas...</option>
+                    </select>
+                </div>
 
-            <div id="content">
-                <div class="card">
-                    <h2>Gerar Formulário de Apontamento Manual</h2>
-                    <p>Selecione a turma para gerar um formulário em PDF com a lista de funcionários, pronto para imprimir e levar para a roça.</p>
-                    
-                    <div class="form-group">
-                        <label for="turma-select">Selecione a Turma *</label>
-                        <select id="turma-select" required>
-                            <option value="">Carregando turmas...</option>
-                        </select>
-                    </div>
-
-                    <div class="form-actions">
-                        <button id="gerar-pdf-btn" class="btn btn-primary">Gerar PDF para Impressão</button>
-                    </div>
+                <div class="form-actions">
+                    <button id="gerar-preview-btn" class="btn btn-primary">Gerar Formulário da Turma</button>
+                    <button id="gerar-branco-btn" class="btn btn-secondary">Gerar Formulário em Branco</button>
+                    <button id="imprimir-btn" class="btn btn-success" style="display: none;">🖨️ Imprimir</button>
                 </div>
             </div>
 
-            <div id="error-message" class="card" style="display: none; background-color: #f8d7da; color: #721c24;">
-                <h2>Erro de Conexão</h2>
-                <p>Não foi possível conectar ao banco de dados.</p>
-                <button onclick="location.reload()" class="btn btn-primary">Tentar Novamente</button>
+            <div id="error-message" class="card no-print" style="display: none; background-color: #f8d7da; color: #721c24;">
+                <h2>Ops! Algo deu errado.</h2>
+                <p>Não foi possível carregar os dados necessários. Verifique sua conexão e tente novamente.</p>
+            </div>
+
+            <div id="preview-container" class="form-sheet-container" style="display: none;">
+                <div class="form-sheet">
+                    <div class="form-header">
+                        <h1>AGRO CANA FORTE</h1>
+                        <h2>FORMULÁRIO DE APONTAMENTO DE PRODUÇÃO</h2>
+                    </div>
+                    <div class="form-info">
+                        <div class="info-field">
+                            <strong>FAZENDA:</strong>
+                            <span class="line"></span>
+                        </div>
+                        <div class="info-field">
+                            <strong>TALHÃO:</strong>
+                            <span class="line"></span>
+                        </div>
+                        <div class="info-field">
+                            <strong>DATA:</strong>
+                            <span class="line"></span>
+                        </div>
+                         <div class="info-field">
+                            <strong>TURMA:</strong>
+                            <span class="line" id="preview-turma"></span>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 35%;">Funcionário</th>
+                                    <th>Metros</th>
+                                    <th>Preço/Metro</th>
+                                    <th>Toneladas</th>
+                                    <th>Folgas</th>
+                                    <th>Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="funcionarios-tbody">
+                                </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td><strong>TOTAIS</strong></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                     <div class="form-footer">
+                        <div class="info-field">
+                            <strong>Assinatura do Responsável:</strong>
+                            <span class="line"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
     
     <script>
-        // Configuração do Supabase
         const SUPABASE_URL = 'https://fwkybhfzfrovjausuqgn.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3a3liaGZ6ZnJvdmphdXN1cWduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg1MDI4OTgsImV4cCI6MjA3NDA3ODg5OH0.M7fN2ML2C4Lc1skLZx9YWyA9CUq813V6DNXP2QdTV0E';
-
         window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     </script>
-
-    <script src="js/utils.js"></script>
+    
     <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
     <script src="js/formularios.js"></script>
 </body>
 </html>

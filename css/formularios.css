@@ -1,10 +1,148 @@
 /* css/formularios.css */
 
+/* Estilos para a tela (não impressão) */
 .form-actions {
-    margin-top: 2rem;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
-#gerar-pdf-btn {
+.form-actions .btn {
+    flex-grow: 1;
+    min-width: 250px;
+}
+
+/* Container da folha de formulário */
+.form-sheet-container {
+    background-color: #e9ecef;
+    padding: 2rem;
+    margin-top: 2rem;
+    border-radius: var(--border-radius);
+}
+
+.form-sheet {
+    background-color: #fff;
+    padding: 2cm 1.5cm; /* Margens de uma folha A4 */
+    width: 21cm; /* Largura A4 */
+    min-height: 29.7cm; /* Altura A4 */
+    margin: 0 auto;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    color: #000;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 1.2rem;
+    border-bottom: 2px solid #000;
+    padding-bottom: 0.8rem;
+}
+
+.form-header h1 {
+    margin: 0;
+    font-size: 1.7rem;
+    font-weight: bold;
+    color: #2c7744;
+}
+
+.form-header h2 {
+    margin: 0.4rem 0 0 0;
+    font-size: 1.1rem;
+    font-weight: normal;
+}
+
+.form-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+    font-size: 0.9rem;
+}
+
+.info-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-field strong {
+    white-space: nowrap;
+}
+
+.info-field .line {
+    border-bottom: 1px solid #999;
     width: 100%;
-    max-width: 300px;
+    display: inline-block;
+    padding: 0 0.5rem;
+    min-height: 1.2rem;
+}
+
+.form-sheet table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem; /* Fonte menor para caber tudo */
+}
+
+.form-sheet th,
+.form-sheet td {
+    border: 1px solid #333;
+    padding: 0.35rem; /* Padding menor */
+    text-align: left;
+}
+
+.form-sheet th {
+    background-color: #e9ecef;
+    font-weight: bold;
+    text-align: center;
+}
+
+.form-sheet tbody tr {
+    height: 1.2rem; /* Altura fixa para as linhas */
+}
+
+.form-sheet tfoot td {
+    font-weight: bold;
+    background-color: #e9ecef;
+}
+
+.form-footer {
+    margin-top: 2.5rem;
+    font-size: 0.9rem;
+}
+
+/* Estilos de Impressão */
+@media print {
+    body {
+        background-color: #fff !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .main {
+        padding: 0;
+    }
+
+    .form-sheet-container {
+        background-color: transparent;
+        padding: 0;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .form-sheet {
+        box-shadow: none;
+        width: 100%;
+        height: auto;
+        padding: 0;
+        margin: 0;
+    }
+
+    .form-sheet th {
+        background-color: #e9ecef !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 }
