@@ -225,30 +225,4 @@ document.addEventListener('DOMContentLoaded', async function() {
         currentPage = 1;
         carregarLogs();
     }
-
-    // Função para mostrar mensagens
-    function mostrarMensagem(mensagem, tipo = 'success') {
-        const mensagensAntigas = document.querySelectorAll('.alert-message');
-        mensagensAntigas.forEach(msg => msg.remove());
-
-        const mensagemDiv = document.createElement('div');
-        mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
-        mensagemDiv.innerHTML = `
-            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px; 
-                       ${tipo === 'error' ? 'background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;' : 
-                         'background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;'}">
-                ${mensagem}
-                <button onclick="this.parentElement.parentElement.remove()" 
-                        style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
-            </div>
-        `;
-        
-        document.querySelector('.main .container').prepend(mensagemDiv);
-
-        setTimeout(() => {
-            if (mensagemDiv.parentElement) {
-                mensagemDiv.remove();
-            }
-        }, 5000);
-    }
 });

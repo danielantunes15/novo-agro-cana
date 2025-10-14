@@ -67,53 +67,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         errorElement.style.display = 'block';
     }
 
-    async function testarConexaoSupabase() {
-        try {
-            const { data, error } = await supabase
-                .from('funcionarios')
-                .select('*')
-                .limit(1);
-                
-            if (error) throw error;
-            console.log('✅ Conexão com Supabase estabelecida (cadastros)');
-            return true;
-        } catch (error) {
-            throw new Error(`Falha na conexão: ${error.message}`);
-        }
-    }
-
-    function mostrarMensagem(mensagem, tipo = 'success') {
-        const mensagensAntigas = document.querySelectorAll('.alert-message');
-        mensagensAntigas.forEach(msg => msg.remove());
-
-        const mensagemDiv = document.createElement('div');
-        mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
-        mensagemDiv.innerHTML = `
-            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                ${mensagem}
-                <button onclick="this.parentElement.parentElement.remove()" style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
-            </div>
-        `;
-        
-        document.querySelector('.main .container').prepend(mensagemDiv);
-
-        setTimeout(() => {
-            if (mensagemDiv.parentElement) {
-                mensagemDiv.remove();
-            }
-        }, 5000);
-    }
-
     function limparFormularioFuncionario() {
         funcionarioForm.reset();
         funcionarioEditandoId = null;
-        document.querySelector('#funcionario-form button[type="submit"]').textContent = 'Cadastrar Funcionário';
+        document.querySelector('#funcionario-form button[type="submit"]').textContent = 'Salvar Funcionário';
     }
 
     function limparFormularioTurma() {
         turmaForm.reset();
         turmaEditandoId = null;
-        document.querySelector('#turma-form button[type="submit"]').textContent = 'Cadastrar Turma';
+        document.querySelector('#turma-form button[type="submit"]').textContent = 'Salvar Turma';
     }
 
     async function salvarFuncionario(e) {

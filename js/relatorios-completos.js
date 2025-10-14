@@ -59,22 +59,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (errorElement) errorElement.style.display = 'block';
     }
 
-    // Função para testar conexão
-    async function testarConexaoSupabase() {
-        try {
-            const { data, error } = await supabase
-                .from('funcionarios')
-                .select('*')
-                .limit(1);
-                
-            if (error) throw error;
-            console.log('✅ Conexão com Supabase estabelecida (relatórios)');
-            return true;
-        } catch (error) {
-            throw new Error(`Falha na conexão: ${error.message}`);
-        }
-    }
-
     // Função para configurar datas padrão
     function configurarDatasPadrao() {
         if (!dataInicio || !dataFim) return;
@@ -198,33 +182,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (exportarExcelBtn) {
             exportarExcelBtn.addEventListener('click', exportarExcel);
         }
-    }
-
-    // Função para mostrar mensagens
-    function mostrarMensagem(mensagem, tipo = 'success') {
-        const mensagensAntigas = document.querySelectorAll('.alert-message');
-        mensagensAntigas.forEach(msg => msg.remove());
-
-        const mensagemDiv = document.createElement('div');
-        mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
-        mensagemDiv.innerHTML = `
-            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                <strong>${tipo === 'error' ? '⚠️' : '✅'} </strong> ${mensagem}
-                <button onclick="this.parentElement.parentElement.remove()" 
-                        style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
-            </div>
-        `;
-        
-        const container = document.querySelector('.main .container');
-        if (container) {
-            container.prepend(mensagemDiv);
-        }
-
-        setTimeout(() => {
-            if (mensagemDiv.parentElement) {
-                mensagemDiv.remove();
-            }
-        }, 5000);
     }
 
     // Função principal para gerar relatório
@@ -715,30 +672,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         semDados.style.display = 'block';
         
         mostrarMensagem('Filtros limpos com sucesso!');
-    }
-
-    // Funções auxiliares de formatação
-    function formatarData(data) {
-        if (!data) return 'N/A';
-        
-        // CORREÇÃO: Converte para string se for um objeto Date
-        let dataString = data instanceof Date ? data.toISOString() : String(data);
-        
-        // Manipulamos a string de data diretamente para o formato DD/MM/YYYY.
-        const datePart = dataString.split('T')[0]; // Garante que só pegamos a parte da data
-        const parts = datePart.split('-'); 
-
-        if (parts.length === 3) {
-            // Retorna no formato DD/MM/YYYY (parts[2] é o dia, parts[1] é o mês, parts[0] é o ano)
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-        
-        // Fallback para datas que contenham fuso horário completo
-        try {
-            return new Date(dataString).toLocaleDateString('pt-BR');
-        } catch (e) {
-            return 'N/A';
-        }
     }
 
     // Configurar botão de logout

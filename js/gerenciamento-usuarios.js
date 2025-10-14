@@ -61,23 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById(tabId).classList.add('active');
     }
 
-    // Função SIMPLIFICADA para hash da senha
-    async function hashSenha(senha) {
-        try {
-            // Usando Web Crypto API para um hash mais seguro
-            const encoder = new TextEncoder();
-            const data = encoder.encode(senha + 'agrocana_salt_2024'); // Salt para maior segurança
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex;
-        } catch (error) {
-            console.error('Erro ao gerar hash:', error);
-            // Fallback simples se crypto não estiver disponível
-            return btoa(senha); // Base64 como fallback
-        }
-    }
-
     // Função para carregar lista de usuários
     async function carregarListaUsuarios() {
         try {
@@ -211,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Fazer hash da senha
-            const senhaHash = await hashSenha(senha);
+            const senhaHash = await window.sistemaAuth.hashSenha(senha);
 
             // Criar usuário
             const { error: insertError } = await supabase
@@ -377,26 +360,5 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Erro ao excluir usuário:', error);
             mostrarMensagem('Erro ao excluir usuário: ' + error.message, 'error');
         }
-    }
-
-    // Função para mostrar mensagens
-    function mostrarMensagem(mensagem, tipo = 'success') {
-        const alertContainer = document.getElementById('alert-container');
-        if (!alertContainer) return;
-        
-        const mensagemDiv = document.createElement('div');
-        mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
-        mensagemDiv.innerHTML = `
-            ${mensagem}
-            <button class="close-alert" onclick="this.parentElement.remove()">×</button>
-        `;
-        
-        alertContainer.appendChild(mensagemDiv);
-
-        setTimeout(() => {
-            if (mensagemDiv.parentElement) {
-                mensagemDiv.remove();
-            }
-        }, 5000);
     }
 });

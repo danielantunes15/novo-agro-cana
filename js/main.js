@@ -49,29 +49,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Função para testar conexão
-    async function testarConexaoSupabase() {
-        try {
-            console.log('Testando conexão com Supabase...');
-            
-            const { data, error } = await supabase
-                .from('fazendas')
-                .select('count')
-                .limit(1);
-                
-            if (error) {
-                console.error('Erro na conexão:', error);
-                throw new Error(`Erro Supabase: ${error.message}`);
-            }
-            
-            console.log('✅ Conexão com Supabase estabelecida');
-            return true;
-        } catch (error) {
-            console.error('Falha na conexão Supabase:', error);
-            throw error;
-        }
-    }
-
     // Função para inicializar a aplicação
     async function inicializarAplicacao() {
         const apontamentoForm = document.getElementById('apontamento-form');
@@ -178,34 +155,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             console.error('Erro ao carregar turmas para Diária:', error);
         }
-    }
-
-    // Função para mostrar mensagem
-    function mostrarMensagem(mensagem, tipo = 'success') {
-        // Remover mensagens anteriores
-        const mensagensAntigas = document.querySelectorAll('.alert-message');
-        mensagensAntigas.forEach(msg => msg.remove());
-
-        const mensagemDiv = document.createElement('div');
-        mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
-        mensagemDiv.innerHTML = `
-            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px; background-color: ${tipo === 'error' ? '#f8d7da' : '#d4edda'}; color: ${tipo === 'error' ? '#721c24' : '#155724'};">
-                ${mensagem}
-                <button onclick="this.parentElement.parentElement.remove()" style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
-            </div>
-        `;
-        
-        const container = document.querySelector('.main .container');
-        if (container) {
-            container.prepend(mensagemDiv);
-        }
-
-        // Auto-remover após 5 segundos
-        setTimeout(() => {
-            if (mensagemDiv.parentElement) {
-                mensagemDiv.remove();
-            }
-        }, 5000);
     }
 
     // Função para adicionar campo de funcionário (Corte)
@@ -818,7 +767,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Loop para gerar uma linha de resumo por apontamento
             data.forEach(apontamento => {
-                const dataFormatada = apontamento.data_corte ? apontamento.data_corte.split('T')[0].split('-').reverse().join('/') : 'N/A';
+                const dataFormatada = formatarData(apontamento.data_corte);
                 
                 let totalMetros = 0;
                 let totalValor = 0;

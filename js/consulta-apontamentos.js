@@ -54,43 +54,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         errorElement.style.display = 'block';
     }
 
-    async function testarConexaoSupabase() {
-        try {
-            const { data, error } = await supabase
-                .from('apontamentos')
-                .select('*')
-                .limit(1);
-                
-            if (error) throw error;
-            console.log('✅ Conexão com Supabase estabelecida (consulta)');
-            return true;
-        } catch (error) {
-            throw new Error(`Falha na conexão: ${error.message}`);
-        }
-    }
-
-    function mostrarMensagem(mensagem, tipo = 'success') {
-        const mensagensAntigas = document.querySelectorAll('.alert-message');
-        mensagensAntigas.forEach(msg => msg.remove());
-
-        const mensagemDiv = document.createElement('div');
-        mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
-        mensagemDiv.innerHTML = `
-            <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px;">
-                ${mensagem}
-                <button onclick="this.parentElement.parentElement.remove()" style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
-            </div>
-        `;
-        
-        document.querySelector('.main .container').prepend(mensagemDiv);
-
-        setTimeout(() => {
-            if (mensagemDiv.parentElement) {
-                mensagemDiv.remove();
-            }
-        }, 5000);
-    }
-
     async function carregarDadosIniciais() {
         // Configurar datas padrão (últimos 30 dias)
         const dataFim = new Date();
@@ -281,12 +244,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         html += '</tbody></table>';
         apontamentosList.innerHTML = html;
-    }
-
-    function formatarData(data) {
-        if (!data) return '';
-        // CORREÇÃO: Formata a string YYYY-MM-DD para DD/MM/YYYY
-        return data.split('T')[0].split('-').reverse().join('/');
     }
 
     async function aplicarFiltros(e) {
