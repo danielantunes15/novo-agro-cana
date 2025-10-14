@@ -322,10 +322,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     function ordenarDados(dados, ordenacao) {
         switch (ordenacao) {
             case 'data_asc':
-                dados.sort((a, b) => new Date(a.apontamentos.data_corte) - new Date(b.apontamentos.data_corte));
+                // CORREÇÃO: Adiciona verificação de apontamentos?.data_corte para evitar crash com valores null
+                dados.sort((a, b) => {
+                    const dataA = a.apontamentos?.data_corte ? new Date(a.apontamentos.data_corte) : 0;
+                    const dataB = b.apontamentos?.data_corte ? new Date(b.apontamentos.data_corte) : 0;
+                    return dataA - dataB;
+                });
                 break;
             case 'data_desc':
-                dados.sort((a, b) => new Date(b.apontamentos.data_corte) - new Date(a.apontamentos.data_corte));
+                 // CORREÇÃO: Adiciona verificação de apontamentos?.data_corte para evitar crash com valores null
+                dados.sort((a, b) => {
+                    const dataA = a.apontamentos?.data_corte ? new Date(a.apontamentos.data_corte) : 0;
+                    const dataB = b.apontamentos?.data_corte ? new Date(b.apontamentos.data_corte) : 0;
+                    return dataB - dataA;
+                });
                 break;
             case 'valor_asc':
                 dados.sort((a, b) => a.valor - b.valor);
@@ -385,6 +395,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         dados.forEach(item => {
             const apontamento = item.apontamentos;
+            // CORREÇÃO: Pula o item se apontamento for null
             if (!apontamento) return;
             
             totalMetros += item.metros || 0;
@@ -414,6 +425,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         dados.forEach((item, index) => {
             const apontamento = item.apontamentos;
             const funcionario = item.funcionarios;
+            // CORREÇÃO: Pula o item se apontamento ou funcionario for null
             if (!apontamento || !funcionario) return;
             
             const dataCorte = apontamento.data_corte;
