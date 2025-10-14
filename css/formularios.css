@@ -1,0 +1,10 @@
+/* css/formularios.css */
+
+.form-actions {
+    margin-top: 2rem;
+}
+
+#gerar-pdf-btn {
+    width: 100%;
+    max-width: 300px;
+}
