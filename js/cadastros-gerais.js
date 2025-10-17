@@ -1,5 +1,3 @@
-// NOVO CONTEÚDO PARA danielantunes15/novo-agro-cana/novo-agro-cana-3837631b287227b18887e4618e2736ed6e7612ef/js/cadastros-gerais.js
-
 document.addEventListener('DOMContentLoaded', async function() {
     const loadingElement = document.getElementById('loading');
     const contentElement = document.getElementById('content');
@@ -159,7 +157,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             
         } catch (error) {
             console.error('Erro ao salvar funcionário:', error);
-            mostrarMensagem('Erro ao salvar funcionário: ' + error.message, 'error');
+            
+            // VERIFICAÇÃO ESPECÍFICA PARA ERRO DE CPF DUPLICADO (chave única: 23505)
+            if (error.code === '23505' && error.message.includes('funcionarios_cpf_key')) {
+                mostrarMensagem('ERRO: Este CPF já está cadastrado no sistema. Verifique o CPF ou edite o funcionário existente.', 'error');
+            } else {
+                mostrarMensagem('Erro ao salvar funcionário: ' + error.message, 'error');
+            }
         }
     }
 
