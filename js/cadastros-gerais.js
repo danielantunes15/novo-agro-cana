@@ -1,3 +1,5 @@
+// NOVO CONTEÚDO PARA danielantunes15/novo-agro-cana/novo-agro-cana-3837631b287227b18887e4618e2736ed6e7612ef/js/cadastros-gerais.js
+
 document.addEventListener('DOMContentLoaded', async function() {
     const loadingElement = document.getElementById('loading');
     const contentElement = document.getElementById('content');
@@ -8,6 +10,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     const turmasList = document.getElementById('turmas-list');
     const turmaFuncionarioSelect = document.getElementById('turma-funcionario');
 
+    // NOVOS ELEMENTOS PARA FILTRO
+    const filtroForm = document.getElementById('filtro-funcionarios-form');
+    const filtroNomeCpf = document.getElementById('filtro-nome-cpf');
+    const filtroTurmaSelect = document.getElementById('filtro-turma');
+    const limparFiltroFuncionariosBtn = document.getElementById('limpar-filtro-funcionarios');
+    // FIM NOVOS ELEMENTOS
+    
     let funcionarioEditandoId = null;
     let turmaEditandoId = null;
 
@@ -55,11 +64,17 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         aplicarMascaras();
         await carregarTurmasParaSelect();
-        await carregarFuncionarios();
+        await carregarTurmasParaFiltro();
+        await carregarFuncionarios(); // Carrega todos na inicialização
         await carregarTurmas();
         
         funcionarioForm.addEventListener('submit', salvarFuncionario);
         turmaForm.addEventListener('submit', salvarTurma);
+
+        // NOVOS LISTENERS PARA FILTRO
+        if (filtroForm) filtroForm.addEventListener('submit', aplicarFiltrosFuncionarios);
+        if (limparFiltroFuncionariosBtn) limparFiltroFuncionariosBtn.addEventListener('click', limparFiltrosFuncionarios);
+        // FIM NOVOS LISTENERS
 
     } catch (error) {
         console.error('Erro na inicialização:', error);
@@ -140,7 +155,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (resultado.error) throw resultado.error;
             
             limparFormularioFuncionario();
-            await carregarFuncionarios();
+            await carregarFuncionarios(); // Recarrega lista após salvar
             
         } catch (error) {
             console.error('Erro ao salvar funcionário:', error);
@@ -193,6 +208,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             limparFormularioTurma();
             await carregarTurmasParaSelect();
+            await carregarTurmasParaFiltro();
             await carregarTurmas();
             
         } catch (error) {
@@ -222,9 +238,49 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    async function carregarFuncionarios() {
+    // NOVO: Função para carregar turmas no filtro
+    async function carregarTurmasParaFiltro() {
         try {
             const { data, error } = await supabase
+                .from('turmas')
+                .select('id, nome')
+                .order('nome');
+                
+            if (error) throw error;
+            
+            filtroTurmaSelect.innerHTML = '<option value="">Todas as Turmas</option>';
+            data.forEach(turma => {
+                const option = document.createElement('option');
+                option.value = turma.id;
+                option.textContent = turma.nome;
+                filtroTurmaSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erro ao carregar turmas para filtro:', error);
+        }
+    }
+    
+    // NOVO: Função para aplicar filtros
+    async function aplicarFiltrosFuncionarios(e) {
+        e.preventDefault();
+        
+        const filtroNomeCpfValue = filtroNomeCpf.value.trim();
+        const filtroTurmaId = filtroTurmaSelect.value;
+        
+        await carregarFuncionarios(filtroNomeCpfValue, filtroTurmaId);
+    }
+    
+    // NOVO: Função para limpar filtros
+    async function limparFiltrosFuncionarios() {
+        filtroNomeCpf.value = '';
+        filtroTurmaSelect.value = '';
+        await carregarFuncionarios();
+    }
+
+    // FUNÇÃO ATUALIZADA: carregarFuncionarios com Filtro e Agrupamento
+    async function carregarFuncionarios(filtroTexto = '', filtroTurmaId = '') {
+        try {
+            let query = supabase
                 .from('funcionarios')
                 .select(`
                     id,
@@ -233,16 +289,44 @@ document.addEventListener('DOMContentLoaded', async function() {
                     data_nascimento,
                     telefone,
                     funcao,
-                    turmas(nome)
+                    turmas(id, nome)
                 `)
-                .order('nome');
+                .order('nome'); 
+            
+            // Aplicar filtro de Turma na consulta Supabase
+            if (filtroTurmaId) {
+                query = query.eq('turma', filtroTurmaId);
+            }
+
+            const { data, error } = await query;
                 
             if (error) throw error;
             
-            if (data.length === 0) {
-                funcionariosList.innerHTML = '<p>Nenhum funcionário cadastrado.</p>';
+            let funcionariosFiltrados = data || [];
+            
+            // Aplicar filtro de Texto (Nome ou CPF) em memória
+            if (filtroTexto) {
+                const termo = filtroTexto.toLowerCase();
+                funcionariosFiltrados = funcionariosFiltrados.filter(f => 
+                    f.nome.toLowerCase().includes(termo) || 
+                    f.cpf.replace(/\D/g, '').includes(termo.replace(/\D/g, ''))
+                );
+            }
+            
+            if (funcionariosFiltrados.length === 0) {
+                funcionariosList.innerHTML = '<p>Nenhum funcionário encontrado com os filtros aplicados.</p>';
                 return;
             }
+            
+            // 1. Agrupar funcionários por Turma
+            const funcionariosPorTurma = funcionariosFiltrados.reduce((acc, funcionario) => {
+                const nomeTurma = funcionario.turmas?.nome || 'Sem Turma Atribuída';
+                if (!acc[nomeTurma]) {
+                    acc[nomeTurma] = [];
+                }
+                acc[nomeTurma].push(funcionario);
+                return acc;
+            }, {});
             
             let html = `
                 <table>
@@ -260,28 +344,40 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <tbody>
             `;
             
-            data.forEach(funcionario => {
-                const nascimento = new Date(funcionario.data_nascimento).toLocaleDateString('pt-BR');
-                const telefone = funcionario.telefone ? 
-                    funcionario.telefone.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3') : 
-                    'Não informado';
-                
+            // 2. Iterar sobre os grupos e construir o HTML
+            const nomesTurmas = Object.keys(funcionariosPorTurma).sort();
+            
+            nomesTurmas.forEach(nomeTurma => {
+                // Linha de agrupamento por turma
                 html += `
-                    <tr>
-                        <td>${funcionario.nome}</td>
-                        <td>${funcionario.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</td>
-                        <td>${nascimento}</td>
-                        <td>${telefone}</td>
-                        <td>${formatarFuncao(funcionario.funcao)}</td>
-                        <td>${funcionario.turmas?.nome || 'N/A'}</td>
-                        <td>
-                            <button class="btn-secondary" onclick="editarFuncionario('${funcionario.id}')">Editar</button>
-                            <button class="btn-remove" onclick="excluirFuncionario('${funcionario.id}')" title="Excluir">
-                                <i class="delete-icon">🗑️</i>
-                            </button>
-                        </td>
+                    <tr class="turma-group-row">
+                        <td colspan="7">Turma: ${nomeTurma}</td>
                     </tr>
                 `;
+                
+                funcionariosPorTurma[nomeTurma].forEach(funcionario => {
+                    const nascimento = new Date(funcionario.data_nascimento).toLocaleDateString('pt-BR');
+                    const telefone = funcionario.telefone ? 
+                        funcionario.telefone.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3') : 
+                        'Não informado';
+                    
+                    html += `
+                        <tr>
+                            <td>${funcionario.nome}</td>
+                            <td>${funcionario.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</td>
+                            <td>${nascimento}</td>
+                            <td>${telefone}</td>
+                            <td>${formatarFuncao(funcionario.funcao)}</td>
+                            <td>${nomeTurma}</td>
+                            <td>
+                                <button class="btn-secondary btn-sm" onclick="editarFuncionario('${funcionario.id}')">Editar</button>
+                                <button class="btn-remove btn-sm" onclick="excluirFuncionario('${funcionario.id}')" title="Excluir">
+                                    <i class="delete-icon">🗑️</i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
             });
             
             html += '</tbody></table>';
@@ -289,7 +385,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
         } catch (error) {
             console.error('Erro ao carregar funcionários:', error);
-            funcionariosList.innerHTML = '<p>Erro ao carregar funcionários.</p>';
+            funcionariosList.innerHTML = '<p>Erro ao carregar funcionários. Verifique sua conexão e permissões do banco.</p>';
         }
     }
 
@@ -347,7 +443,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const funcoes = {
             'cortador': 'Cortador de Cana',
             'apontador': 'Apontador',
-            'fiscal': 'Fiscal de Corte'
+            'fiscal': 'Fiscal de Corte',
+            'motorista': 'Motorista',
+            'encarregado': 'Encarregado'
         };
         return funcoes[funcao] || funcao;
     }
@@ -450,7 +548,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     };
 
-    // Botão cancelar edição (adicione este HTML nos formulários)
     window.cancelarEdicaoFuncionario = function() {
         limparFormularioFuncionario();
         mostrarMensagem('Edição cancelada.');

@@ -198,3 +198,18 @@
         padding: 0.2rem 0.6rem;
     }
 }
+
+/* Estilo para a linha de agrupamento por Turma (NOVO) */
+.turma-group-row td {
+    background-color: #e9ecef !important; /* Cor de fundo suave */
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 10px 1rem !important;
+    border-bottom: 3px solid var(--primary-color) !important;
+    border-top: 1px solid var(--primary-color) !important;
+}
+
+.turma-group-row:hover {
+    background-color: #e9ecef !important; /* Remove hover da linha de agrupamento */
+}
