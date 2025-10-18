@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Fazer hash da senha
+            // Fazer hash da senha (AGORA QUE window.sistemaAuth ESTÁ CARREGADO)
             const senhaHash = await window.sistemaAuth.hashSenha(senha);
 
             // Criar usuário
@@ -240,6 +240,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editar-username').value = usuario.username || '';
             document.getElementById('editar-tipo').value = usuario.tipo;
             document.getElementById('editar-ativo').checked = usuario.ativo;
+            
+            // Limpar o campo de senha no modal, por segurança
+            document.getElementById('editar-senha').value = '';
 
             modalEditar.style.display = 'block';
 
@@ -255,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formEditarUsuario.reset();
     }
 
-    // Função para salvar edição do usuário
+    // Função para salvar edição do usuário (CORRIGIDA)
     async function salvarEdicaoUsuario(e) {
         e.preventDefault();
 
@@ -264,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const username = document.getElementById('editar-username').value.trim();
         const tipo = document.getElementById('editar-tipo').value;
         const ativo = document.getElementById('editar-ativo').checked;
+        const novaSenha = document.getElementById('editar-senha').value; // NOVO: Captura a nova senha
 
         if (!nome || !username) {
             mostrarMensagem('Preencha todos os campos obrigatórios', 'error');
@@ -289,21 +293,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // Objeto de dados para atualização
+            const updateData = { 
+                nome: nome, 
+                username: username, 
+                tipo: tipo, 
+                ativo: ativo,
+                atualizado_em: new Date().toISOString()
+            };
+            
+            // NOVO: Tratar a atualização de senha
+            if (novaSenha) {
+                if (novaSenha.length < 6) {
+                    mostrarMensagem('A nova senha deve ter pelo menos 6 caracteres', 'error');
+                    return;
+                }
+                // Fazer hash da senha
+                const senhaHash = await window.sistemaAuth.hashSenha(novaSenha);
+                updateData.senha_hash = senhaHash;
+            }
+
             // Atualizar usuário
             const { error } = await supabase
                 .from('sistema_usuarios')
-                .update({ 
-                    nome: nome, 
-                    username: username, 
-                    tipo: tipo, 
-                    ativo: ativo,
-                    atualizado_em: new Date().toISOString()
-                })
+                .update(updateData) // Usa o objeto com ou sem o hash da senha
                 .eq('id', id);
 
             if (error) throw error;
+            
+            // Mensagem de sucesso personalizada se a senha foi alterada
+            if (novaSenha) {
+                mostrarMensagem('Usuário e senha atualizados com sucesso!', 'success');
+            } else {
+                mostrarMensagem('Usuário atualizado com sucesso!', 'success');
+            }
 
-            mostrarMensagem('Usuário atualizado com sucesso!', 'success');
             fecharModal();
             await carregarListaUsuarios();
 
