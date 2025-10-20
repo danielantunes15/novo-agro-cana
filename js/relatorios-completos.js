@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     doc.setFontSize(8);
                     doc.setTextColor(100, 100, 100);
                     doc.text(
-                        `Página ${doc.internal.getNumberOfPages()} - Gerado em ${new Date().toLocaleString('pt-BR')}`,
+                        `Página ${doc.internal.getNumberOfPages()} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
                         pageWidth / 2,
                         doc.internal.pageSize.getHeight() - 10,
                         { align: 'center' }
