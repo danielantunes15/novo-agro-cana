@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <td>${funcionario.turmas?.nome || 'Sem turma'}</td>
                 <td>${apontamento.fazendas?.nome || 'N/A'}</td>
                 <td>${apontamento.talhoes?.numero || 'N/A'}</td>
-                <td>R$ ${precoPorMetro.toFixed(4)}</td>
+                <td>R$ ${precoPorMetro.toFixed(2)}</td>
                 <td>${item.metros.toFixed(2)}</td>
                 <td>R$ ${item.valor.toFixed(2)}</td>
             `;
@@ -593,7 +593,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         funcionario.turmas?.nome || 'Sem turma',
                         apontamento.fazendas?.nome || 'N/A',
                         apontamento.talhoes?.numero || 'N/A',
-                        `R$ ${precoPorMetro.toFixed(4)}`,
+                        // CORREÇÃO DE EXIBIÇÃO: toFixed(2) para mostrar 2 casas decimais (R$)
+                        `R$ ${precoPorMetro.toFixed(2)}`,
                         item.metros.toFixed(2),
                         `R$ ${item.valor.toFixed(2)}`
                     ]);
@@ -672,7 +673,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const nomeTurma = funcionario?.turmas?.nome || 'Sem turma';
                 const nomeFazenda = apontamento?.fazendas?.nome || 'N/A';
                 const numTalhao = apontamento?.talhoes?.numero || 'N/A';
-                const precoPorMetro = apontamento?.preco_por_metro?.toFixed(4).replace('.', ',') || '0,0000';
+                // CORREÇÃO DE EXIBIÇÃO: toFixed(2) para mostrar 2 casas decimais (R$)
+                const precoPorMetro = apontamento?.preco_por_metro?.toFixed(2).replace('.', ',') || '0,00';
                 const metros = item.metros?.toFixed(2).replace('.', ',') || '0,00';
                 const valor = item.valor?.toFixed(2).replace('.', ',') || '0,00';
 
