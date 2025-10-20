@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2c7744">
 </head>
 <body>
@@ -36,7 +36,7 @@
 
     <main class="main">
         <div class="container">
-            <div id="loading" class="loading">
+            <div id="alert-container" aria-live="polite"></div> <div id="loading" class="loading">
                 <div class="spinner"></div>
                 <p>Carregando sistema de relatórios...</p>
             </div>
@@ -83,6 +83,16 @@
                         </div>
                         
                         <div class="filters-grid">
+                            <div class="filter-group">
+                                <h4>Fazenda</h4>
+                                <div class="form-group">
+                                    <select id="fazenda-filtro">
+                                        <option value="">Todas as Fazendas</option>
+                                        <option value="todos">Todas as Fazendas</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
                             <div class="filter-group">
                                 <h4>📅 Período</h4>
                                 <div class="form-group">

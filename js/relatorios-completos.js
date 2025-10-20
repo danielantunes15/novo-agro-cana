@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const tipoRelatorioSelect = document.getElementById('tipo-relatorio');
     const funcionarioFiltro = document.getElementById('funcionario-filtro');
     const turmaFiltro = document.getElementById('turma-filtro');
+    const fazendaFiltro = document.getElementById('fazenda-filtro'); // NOVO: Filtro de Fazenda
     const funcionarioGroup = document.getElementById('funcionario-group');
     const turmaGroup = document.getElementById('turma-group');
     const dataInicio = document.getElementById('data-inicio');
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Variáveis para armazenar dados
     let funcionarios = [];
     let turmas = [];
+    let fazendas = []; // NOVO: Lista de Fazendas
     let dadosRelatorio = [];
 
     try {
@@ -75,7 +77,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function carregarDadosParaFiltros() {
         await Promise.all([
             carregarFuncionariosParaFiltro(),
-            carregarTurmasParaFiltro()
+            carregarTurmasParaFiltro(),
+            carregarFazendasParaFiltro() // ADICIONADO
         ]);
     }
 
@@ -143,6 +146,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    // NOVO: Função para carregar fazendas
+    async function carregarFazendasParaFiltro() {
+        if (!fazendaFiltro) return;
+        
+        try {
+            const { data, error } = await supabase
+                .from('fazendas')
+                .select('id, nome')
+                .order('nome');
+                
+            if (error) throw error;
+            
+            fazendas = data || [];
+            
+            fazendaFiltro.innerHTML = '<option value="">Todas as Fazendas</option><option value="todos">Todas as Fazendas</option>';
+            fazendas.forEach(fazenda => {
+                const option = document.createElement('option');
+                option.value = fazenda.id;
+                option.textContent = fazenda.nome;
+                fazendaFiltro.appendChild(option);
+            });
+            
+            console.log(`✅ ${fazendas.length} fazendas carregadas`);
+            
+        } catch (error) {
+            console.error('Erro ao carregar fazendas:', error);
+            mostrarMensagem('Erro ao carregar lista de fazendas', 'error');
+        }
+    }
+
     // Função para configurar event listeners
     function configurarEventListeners() {
         // Controle de exibição dos grupos de filtro
@@ -189,6 +222,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const tipoRelatorio = tipoRelatorioSelect.value;
         const funcionarioId = funcionarioFiltro.value;
         const turmaId = turmaFiltro.value;
+        const fazendaId = fazendaFiltro.value; // ADICIONADO
         const dataInicioValue = dataInicio.value;
         const dataFimValue = dataFim.value;
         const ordenacao = ordenacaoSelect.value;
@@ -234,6 +268,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         data_corte,
                         turma,
                         preco_por_metro,
+                        fazenda_id,
                         fazendas(nome),
                         talhoes(numero)
                     )
@@ -248,6 +283,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 query = query.eq('funcionarios.turma', turmaId);
             }
             
+            // NOVO: Aplicar filtro de Fazenda
+            if (fazendaId && fazendaId !== 'todos') {
+                query = query.eq('apontamentos.fazenda_id', fazendaId);
+            }
+
             const { data: apontamentos, error } = await query;
                 
             if (error) throw error;
@@ -259,7 +299,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Exibir relatório
             if (dadosRelatorio.length > 0) {
-                exibirRelatorio(tipoRelatorio, funcionarioId, turmaId, dataInicioValue, dataFimValue, diffDays, agruparPorData);
+                // Passa o fazendaId para a função exibirRelatorio
+                exibirRelatorio(tipoRelatorio, funcionarioId, turmaId, fazendaId, dataInicioValue, dataFimValue, diffDays, agruparPorData); 
                 relatorioContainer.style.display = 'block';
                 semDados.style.display = 'none';
                 mostrarMensagem(`Relatório gerado com ${dadosRelatorio.length} registros de produção`);
@@ -304,7 +345,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Função para exibir relatório na interface
-    function exibirRelatorio(tipoRelatorio, funcionarioId, turmaId, dataInicio, dataFim, diasPeriodo, agruparPorData) {
+    function exibirRelatorio(tipoRelatorio, funcionarioId, turmaId, fazendaId, dataInicio, dataFim, diasPeriodo, agruparPorData) {
         // Configurar informações do relatório
         let tipoTexto = '';
         if (tipoRelatorio === 'funcionario') {
@@ -323,6 +364,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         } else {
             tipoTexto = 'Relatório Geral';
+        }
+        
+        // NOVO: Adiciona Fazenda no cabeçalho do relatório se filtrado por uma fazenda específica
+        if (fazendaId && fazendaId !== 'todos') {
+            const fazenda = fazendas.find(f => f.id === fazendaId);
+            if (fazenda) {
+                tipoTexto += (tipoTexto === 'Relatório Geral' ? '' : ' | ') + `Fazenda: ${fazenda.nome}`;
+            }
         }
         
         document.getElementById('relatorio-tipo').textContent = tipoTexto;
@@ -661,6 +710,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         tipoRelatorioSelect.value = 'funcionario';
         funcionarioFiltro.value = '';
         turmaFiltro.value = '';
+        fazendaFiltro.value = ''; // ADICIONADO
         configurarDatasPadrao();
         ordenacaoSelect.value = 'data_desc';
         agruparPorDataCheck.checked = true;
