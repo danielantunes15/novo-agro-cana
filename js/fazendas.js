@@ -63,7 +63,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     function calcularPrecoPorMetro(talhaoData) {
         // Fórmula: (preco_tonelada * producao_estimada) / (10000 / espacamento / 5)
         const precoPorMetro = (talhaoData.preco_tonelada * talhaoData.producao_estimada) / (10000 / talhaoData.espacamento / 5);
-        return parseFloat(precoPorMetro.toFixed(4));
+        // CORREÇÃO: Garante 4 casas decimais estritas no cálculo do preço por metro
+        return parseFloat(precoPorMetro.toFixed(4)); 
     }
 
     // Função para atualizar apontamentos quando alterar dados do talhão
@@ -78,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
             if (talhaoError) throw talhaoError;
             
-            // Calcular novo preço por metro
+            // Calcular novo preço por metro (usando a função corrigida)
             const novoPrecoPorMetro = calcularPrecoPorMetro(talhao);
             
             // Buscar todos os apontamentos deste talhão
@@ -95,10 +96,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 // Atualizar preço por metro nos apontamentos
                 for (const apontamento of apontamentos) {
-                    // Atualizar apontamento principal
+                    // Atualizar apontamento principal com o novo Preço/m
                     const { error: updateApontamentoError } = await supabase
                         .from('apontamentos')
-                        .update({ preco_por_metro: novoPrecoPorMetro })
+                        // Novo preço por metro, garantido com 4 casas
+                        .update({ preco_por_metro: novoPrecoPorMetro }) 
                         .eq('id', apontamento.id);
                         
                     if (updateApontamentoError) throw updateApontamentoError;
@@ -115,10 +117,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Atualizar valor dos cortes
                     for (const corte of cortes) {
                         const novoValor = corte.metros * novoPrecoPorMetro;
+                        // Arredondar o valor total para 2 casas decimais (R$)
+                        const valorArredondado = parseFloat(novoValor.toFixed(2));
                         
                         const { error: updateCorteError } = await supabase
                             .from('cortes_funcionarios')
-                            .update({ valor: novoValor })
+                            .update({ valor: valorArredondado })
                             .eq('id', corte.id);
                             
                         if (updateCorteError) throw updateCorteError;
@@ -230,6 +234,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 // ATUALIZAR APONTAMENTOS EXISTENTES DESTE TALHÃO
                 try {
+                    // Esta função garante que todos os apontamentos tenham o novo preço e o valor recalculado
                     const { apontamentosAtualizados, cortesAtualizados } = await atualizarApontamentosDoTalhao(talhaoEditandoId);
                     if (apontamentosAtualizados > 0) {
                         mostrarMensagem(`Talhão atualizado! ${apontamentosAtualizados} apontamentos e ${cortesAtualizados} cortes foram atualizados com os novos valores.`, 'success');
