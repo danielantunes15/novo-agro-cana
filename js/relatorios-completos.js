@@ -431,11 +431,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         dados.forEach((item, index) => {
             const apontamento = item.apontamentos;
             const funcionario = item.funcionarios;
+            
             // CORREÇÃO: Pula o item se apontamento ou funcionario for null
             if (!apontamento || !funcionario) return;
             
             const dataCorte = apontamento.data_corte;
             const dataFormatada = formatarData(dataCorte);
+            // CORREÇÃO: Usa encadeamento opcional para evitar erro se apontamento for nulo
+            const precoPorMetro = apontamento?.preco_por_metro || 0; 
             
             // Agrupar por data se solicitado
             if (agruparPorData && dataAtual !== dataCorte) {
@@ -444,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const trSubtotal = document.createElement('tr');
                     trSubtotal.className = 'group-header';
                     trSubtotal.innerHTML = `
-                        <td colspan="5" style="text-align: right; background: #e9ecef;">Subtotal ${formatarData(dataAtual)}</td>
+                        <td colspan="6" style="text-align: right; background: #e9ecef;">Subtotal ${formatarData(dataAtual)}</td>
                         <td style="background: #e9ecef;">${subtotalData.metros.toFixed(2)}</td>
                         <td style="background: #e9ecef;">R$ ${subtotalData.valor.toFixed(2)}</td>
                     `;
@@ -459,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const trHeader = document.createElement('tr');
                 trHeader.className = 'group-header';
                 trHeader.innerHTML = `
-                    <td colspan="7" style="background: #2c5530; color: white; text-align: center; font-size: 1.1rem;">
+                    <td colspan="8" style="background: #2c5530; color: white; text-align: center; font-size: 1.1rem;">
                         📅 ${dataFormatada}
                     </td>
                 `;
@@ -473,6 +476,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <td>${funcionario.turmas?.nome || 'Sem turma'}</td>
                 <td>${apontamento.fazendas?.nome || 'N/A'}</td>
                 <td>${apontamento.talhoes?.numero || 'N/A'}</td>
+                <td>R$ ${precoPorMetro.toFixed(4)}</td>
                 <td>${item.metros.toFixed(2)}</td>
                 <td>R$ ${item.valor.toFixed(2)}</td>
             `;
@@ -490,7 +494,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const trSubtotal = document.createElement('tr');
             trSubtotal.className = 'group-header';
             trSubtotal.innerHTML = `
-                <td colspan="5" style="text-align: right; background: #e9ecef;">Subtotal ${formatarData(dataAtual)}</td>
+                <td colspan="6" style="text-align: right; background: #e9ecef;">Subtotal ${formatarData(dataAtual)}</td>
                 <td style="background: #e9ecef;">${subtotalData.metros.toFixed(2)}</td>
                 <td style="background: #e9ecef;">R$ ${subtotalData.valor.toFixed(2)}</td>
             `;
@@ -502,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const trTotal = document.createElement('tr');
         trTotal.className = 'total-row';
         trTotal.innerHTML = `
-            <td colspan="5" style="text-align: right;">TOTAL GERAL</td>
+            <td colspan="6" style="text-align: right;">TOTAL GERAL</td>
             <td>${estatisticas.totalMetros.toFixed(2)}</td>
             <td>R$ ${estatisticas.totalValor.toFixed(2)}</td>
         `;
@@ -572,13 +576,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Tabela de detalhes
             yPosition += 40;
-            const headers = [['Data', 'Funcionário', 'Turma', 'Fazenda', 'Talhão', 'Metros (m)', 'Valor (R$)']];
+            const headers = [['Data', 'Funcionário', 'Turma', 'Fazenda', 'Talhão', 'Preço/m (R$)', 'Metros (m)', 'Valor (R$)']];
             const tableData = [];
             
             dadosRelatorio.forEach(item => {
                 const apontamento = item.apontamentos;
                 const funcionario = item.funcionarios;
                 
+                // CORREÇÃO: Usa encadeamento opcional para evitar erro se apontamento for nulo
+                const precoPorMetro = apontamento?.preco_por_metro || 0; 
+
                 if (apontamento && funcionario) {
                     tableData.push([
                         formatarData(apontamento.data_corte),
@@ -586,6 +593,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         funcionario.turmas?.nome || 'Sem turma',
                         apontamento.fazendas?.nome || 'N/A',
                         apontamento.talhoes?.numero || 'N/A',
+                        `R$ ${precoPorMetro.toFixed(4)}`,
                         item.metros.toFixed(2),
                         `R$ ${item.valor.toFixed(2)}`
                     ]);
@@ -595,7 +603,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Adicionar totais
             const estatisticas = calcularEstatisticas(dadosRelatorio);
             tableData.push([
-                'TOTAL GERAL', '', '', '', '',
+                'TOTAL GERAL', '', '', '', '', '', // Ajuste para cobrir a nova coluna de Preço/m (R$)
                 estatisticas.totalMetros.toFixed(2),
                 `R$ ${estatisticas.totalValor.toFixed(2)}`
             ]);
@@ -650,6 +658,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 "Turma", 
                 "Fazenda", 
                 "Talhão", 
+                "Preço/m (R$)", 
                 "Metros (m)", 
                 "Valor (R$)"
             ].join(';');
@@ -663,6 +672,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const nomeTurma = funcionario?.turmas?.nome || 'Sem turma';
                 const nomeFazenda = apontamento?.fazendas?.nome || 'N/A';
                 const numTalhao = apontamento?.talhoes?.numero || 'N/A';
+                const precoPorMetro = apontamento?.preco_por_metro?.toFixed(4).replace('.', ',') || '0,0000';
                 const metros = item.metros?.toFixed(2).replace('.', ',') || '0,00';
                 const valor = item.valor?.toFixed(2).replace('.', ',') || '0,00';
 
@@ -672,6 +682,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     `"${nomeTurma}"`,
                     `"${nomeFazenda}"`,
                     numTalhao,
+                    precoPorMetro,
                     metros,
                     valor
                 ].join(';');
