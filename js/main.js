@@ -581,7 +581,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 apontamento_id: apontamento.id,
                 funcionario_id: corte.funcionario_id,
                 metros: corte.metros,
-                valor: corte.metros * precoPorMetro
+                // CORREÇÃO: Força o arredondamento do valor para 2 casas decimais (R$)
+                valor: parseFloat((corte.metros * precoPorMetro).toFixed(2))
             }));
             
             // Inserir cortes
@@ -693,7 +694,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 apontamento_id: apontamento.id,
                 funcionario_id: funcionarioId,
                 metros: 0.01, // Valor mínimo para satisfazer a constraint de checagem, sem alterar o valor final
-                valor: valorFixo // Valor total é o valor da diária
+                valor: parseFloat(valorFixo.toFixed(2)) // Garante que o valor da diária seja salvo com 2 casas
             }));
             
             // Inserir cortes

@@ -533,7 +533,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .update({ 
                         metros: corte.metros,
                         // Recalcula o valor apenas se for um apontamento de corte (precoPorMetro > 0)
-                        valor: (precoPorMetro > 0) ? novoValor : undefined 
+                        // CORREÇÃO: Força o arredondamento do valor para 2 casas decimais (R$)
+                        valor: (precoPorMetro > 0) ? parseFloat(novoValor.toFixed(2)) : undefined 
                     }) 
                     .eq('id', corte.id);
                     
