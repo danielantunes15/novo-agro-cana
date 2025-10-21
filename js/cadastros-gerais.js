@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const funcionariosList = document.getElementById('funcionarios-list');
     const turmasList = document.getElementById('turmas-list');
     const turmaFuncionarioSelect = document.getElementById('turma-funcionario');
+    const codigoFuncionarioInput = document.getElementById('codigo-funcionario'); // Elemento do código
 
     // NOVOS ELEMENTOS PARA FILTRO
     const filtroForm = document.getElementById('filtro-funcionarios-form');
@@ -66,6 +67,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         await carregarFuncionarios(); // Carrega todos na inicialização
         await carregarTurmas();
         
+        // NOVO: Sugere o próximo código ao carregar a página
+        if (codigoFuncionarioInput) {
+            await sugerirProximoCodigo();
+        }
+        
         funcionarioForm.addEventListener('submit', salvarFuncionario);
         turmaForm.addEventListener('submit', salvarTurma);
 
@@ -79,11 +85,61 @@ document.addEventListener('DOMContentLoaded', async function() {
         loadingElement.style.display = 'none';
         errorElement.style.display = 'block';
     }
+    
+    // FUNÇÃO NOVO: Sugere o próximo código sequencial
+    async function sugerirProximoCodigo() {
+        if (!codigoFuncionarioInput) return;
+        
+        try {
+            // 1. Busca o último código cadastrado, ordenando de forma descendente e limitando a 1
+            const { data, error } = await supabase
+                .from('funcionarios')
+                .select('codigo')
+                .order('codigo', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+            
+            let proximoCodigo = 1;
+            
+            if (data && data.length > 0 && data[0].codigo) {
+                // 2. Converte o último código para número, incrementa
+                const ultimoCodigo = parseInt(data[0].codigo.replace(/\D/g, ''));
+                if (!isNaN(ultimoCodigo)) {
+                    proximoCodigo = ultimoCodigo + 1;
+                }
+            }
+            
+            // 3. Formata o número de volta para string de 2 dígitos (ex: 1 -> '01', 15 -> '15')
+            const codigoFormatado = String(proximoCodigo).padStart(2, '0');
+            
+            // 4. Preenche o campo (somente se não estiver em modo de edição)
+            if (!funcionarioEditandoId) {
+                codigoFuncionarioInput.value = codigoFormatado;
+                // NOVO: Define como somente leitura para evitar alteração
+                codigoFuncionarioInput.readOnly = true; 
+            }
+
+        } catch (error) {
+            console.error('Erro ao sugerir código:', error);
+            // Em caso de erro, define o valor padrão para 01 e permite edição manual
+            codigoFuncionarioInput.value = '01';
+            codigoFuncionarioInput.readOnly = false; 
+            mostrarMensagem('Atenção: Não foi possível sugerir o código automático. Verifique a lista.', 'error');
+        }
+    }
+
 
     function limparFormularioFuncionario() {
         funcionarioForm.reset();
         funcionarioEditandoId = null;
         document.querySelector('#funcionario-form button[type="submit"]').textContent = 'Salvar Funcionário';
+        
+        // NOVO: Garante que o campo seja somente leitura e sugere o próximo código
+        if (codigoFuncionarioInput) {
+            codigoFuncionarioInput.readOnly = true; 
+        }
+        sugerirProximoCodigo();
     }
 
     function limparFormularioTurma() {
@@ -97,13 +153,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         const nome = document.getElementById('nome-funcionario').value.trim();
         const cpf = document.getElementById('cpf-funcionario').value.replace(/\D/g, '');
+        const codigo = document.getElementById('codigo-funcionario').value.trim(); // NOVO: Captura o código
         const nascimento = document.getElementById('nascimento-funcionario').value;
         const telefone = document.getElementById('telefone-funcionario').value.replace(/\D/g, '');
         const funcao = document.getElementById('funcao-funcionario').value;
         const turmaId = document.getElementById('turma-funcionario').value;
         
-        if (!nome || !cpf || !nascimento || !funcao || !turmaId) {
-            mostrarMensagem('Preencha todos os campos obrigatórios.', 'error');
+        // Adiciona 'codigo' nas validações
+        if (!nome || !cpf || !codigo || !nascimento || !funcao || !turmaId) { 
+            mostrarMensagem('Preencha todos os campos obrigatórios, incluindo o Código.', 'error');
             return;
         }
 
@@ -112,7 +170,29 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
+        // NOVO: Validação para Código (ex: 01, 15)
+        if (!/^\d{1,2}$/.test(codigo)) {
+            mostrarMensagem('O Código do Funcionário deve ter 1 ou 2 dígitos numéricos (ex: 01, 15).', 'error');
+            return;
+        }
+        
         try {
+            // NOVO: Verificar se o código já existe
+            const { data: existingCode, error: codeCheckError } = await supabase
+                .from('funcionarios')
+                .select('id')
+                .eq('codigo', codigo)
+                // Exclui o próprio usuário da verificação durante a edição
+                .neq('id', funcionarioEditandoId || '') 
+                .maybeSingle();
+
+            if (codeCheckError) throw codeCheckError;
+
+            if (existingCode) {
+                mostrarMensagem('ERRO: Este Código de Funcionário já está em uso.', 'error');
+                return;
+            }
+
             let resultado;
             
             if (funcionarioEditandoId) {
@@ -122,6 +202,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .update({
                         nome: nome,
                         cpf: cpf,
+                        codigo: codigo, // NOVO: Salva o código
                         data_nascimento: nascimento,
                         telefone: telefone,
                         funcao: funcao,
@@ -139,6 +220,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     .insert([{
                         nome: nome,
                         cpf: cpf,
+                        codigo: codigo, // NOVO: Salva o código
                         data_nascimento: nascimento,
                         telefone: telefone,
                         funcao: funcao,
@@ -290,11 +372,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                     id,
                     nome,
                     cpf,
+                    codigo,
                     data_nascimento,
                     telefone,
                     funcao,
                     turmas(id, nome)
                 `)
+                .order('codigo')
                 .order('nome'); 
             
             // Aplicar filtro de Turma na consulta Supabase
@@ -336,6 +420,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <table>
                     <thead>
                         <tr>
+                            <th>Cód.</th>
                             <th>Nome</th>
                             <th>CPF</th>
                             <th>Nascimento</th>
@@ -355,7 +440,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Linha de agrupamento por turma
                 html += `
                     <tr class="turma-group-row">
-                        <td colspan="7">Turma: ${nomeTurma}</td>
+                        <td colspan="8">Turma: ${nomeTurma}</td>
                     </tr>
                 `;
                 
@@ -367,6 +452,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     html += `
                         <tr>
+                            <td>${funcionario.codigo || 'N/A'}</td>
                             <td>${funcionario.nome}</td>
                             <td>${funcionario.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</td>
                             <td>${nascimento}</td>
@@ -468,6 +554,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Preencher o formulário com os dados do funcionário
             document.getElementById('nome-funcionario').value = funcionario.nome;
             document.getElementById('cpf-funcionario').value = funcionario.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            document.getElementById('codigo-funcionario').value = funcionario.codigo || ''; // NOVO: Preenche o código
             document.getElementById('nascimento-funcionario').value = funcionario.data_nascimento;
             document.getElementById('telefone-funcionario').value = funcionario.telefone ? funcionario.telefone.replace(/(\d{2})(\d{4,5})(\d{4})/, '($1) $2-$3') : '';
             document.getElementById('funcao-funcionario').value = funcionario.funcao;
@@ -476,6 +563,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             funcionarioEditandoId = id;
             document.querySelector('#funcionario-form button[type="submit"]').textContent = 'Atualizar Funcionário';
             
+            // NOVO: Remove readonly em modo de edição
+            if (codigoFuncionarioInput) {
+                codigoFuncionarioInput.readOnly = false; 
+            }
+
             // Rolagem suave até o formulário
             document.getElementById('funcionario-form').scrollIntoView({ behavior: 'smooth' });
             

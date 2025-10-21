@@ -279,7 +279,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             const { data, error } = await supabase
                 .from('funcionarios')
-                .select(`id, nome, turmas(nome)`)
+                .select(`id, nome, codigo, turmas(nome)`) // NOVO: Seleciona o código
+                .order('codigo') // Ordena por código
                 .order('nome');
                 
             if (error) throw error;
@@ -296,7 +297,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         funcionarios.forEach(funcionario => {
             const option = document.createElement('option');
             option.value = funcionario.id;
-            option.textContent = `${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
+            // EXIBE: Código + Nome + Turma
+            option.textContent = `${funcionario.codigo ? funcionario.codigo + ' - ' : ''}${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
             if (funcionarioId === funcionario.id) {
                  option.selected = true;
             }
@@ -350,8 +352,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 1. Buscar todos os funcionários da turma selecionada
             const { data: funcionariosDaTurma, error } = await supabase
                 .from('funcionarios')
-                .select(`id, nome, turmas(nome)`)
+                .select(`id, nome, codigo, turmas(nome)`) // NOVO: Seleciona o código
                 .eq('turma', turmaId)
+                .order('codigo') // Ordena por código
                 .order('nome');
                 
             if (error) throw error;
