@@ -47,9 +47,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const { data: funcionarios, error } = await supabase
                 .from('funcionarios')
-                .select('nome')
+                .select('nome, codigo')
                 .eq('turma', turmaId)
-                .order('nome');
+                .order('nome'); // ALTERADO: Ordena APENAS por nome (ordem alfabética)
 
             if (error) throw error;
 
@@ -63,18 +63,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             funcionarios.forEach(func => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${func.nome}</td>
-                    <td></td><td></td><td></td><td></td><td></td>
-                `;
+                    <td>${func.codigo || ''}</td> <td>${func.nome}</td>           <td></td><td></td><td></td><td></td><td></td> `;
                 tbody.appendChild(tr);
             });
             
-            // Adiciona 5 linhas em branco extras para anotações
+            // Adiciona 5 linhas em branco extras para anotações (Total de 7 colunas)
             for (let i = 0; i < 5; i++) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td></td><td></td><td></td><td></td><td></td><td></td>
-                `;
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td> `;
                 tbody.appendChild(tr);
             }
 
@@ -97,12 +94,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tbody = document.getElementById('funcionarios-tbody');
         tbody.innerHTML = '';
             
-        // Adiciona 45 linhas totalmente em branco
+        // Adiciona 45 linhas totalmente em branco (Total de 7 colunas)
         for (let i = 0; i < 45; i++) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td></td><td></td><td></td><td></td><td></td><td></td>
-            `;
+                <td></td><td></td><td></td><td></td><td></td><td></td><td></td> `;
             tbody.appendChild(tr);
         }
 
