@@ -177,15 +177,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         try {
-            // NOVO: Verificar se o código já existe
-            const { data: existingCode, error: codeCheckError } = await supabase
+            // NOVO: Verificar se o código já existe (CORREÇÃO DE UUID)
+            let queryCheckCode = supabase
                 .from('funcionarios')
                 .select('id')
-                .eq('codigo', codigo)
-                // Exclui o próprio usuário da verificação durante a edição
-                .neq('id', funcionarioEditandoId || '') 
-                .maybeSingle();
+                .eq('codigo', codigo);
 
+            // CORREÇÃO: Apenas adiciona o filtro .neq('id', ...) se estivermos em modo de edição.
+            // Isso evita passar um valor vazio ("") para um campo UUID.
+            if (funcionarioEditandoId) {
+                queryCheckCode = queryCheckCode.neq('id', funcionarioEditandoId);
+            }
+
+            const { data: existingCode, error: codeCheckError } = await queryCheckCode.maybeSingle();
+            
             if (codeCheckError) throw codeCheckError;
 
             if (existingCode) {
