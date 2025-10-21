@@ -1,4 +1,4 @@
-// js/relatorios-completos.js - VERSÃO CORRIGIDA (COM 4 CASAS DECIMAIS NO PREÇO/M, CORREÇÃO DIÁRIA e QUEBRA DE PÁGINA POR FUNCIONÁRIO)
+// js/relatorios-completos.js - VERSÃO CORRIGIDA (COM 4 CASAS DECIMAIS NO PREÇO/M, CORREÇÃO DIÁRIA, QUEBRA DE PÁGINA POR FUNCIONÁRIO e PÁGINA SEPARADA PARA RESUMO GERAL)
 
 document.addEventListener('DOMContentLoaded', async function() {
     // ... (restante do código inicial: elementos DOM, variáveis, try/catch) ...
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
 
-    // ... (funções configurarDatasPadrao, carregarDadosParaFiltros, carregarFuncionariosParaFiltro, carregarTurmasParaFiltro, carregarFazendasParaFiltro, configurarEventListeners, gerarRelatorio, ordenarDados, exibirRelatorio, calcularEstatisticas) ...
+    // ... (funções configurarDatasPadrao, carregarDadosParaFiltros, carregarFuncionariosParaFiltro, carregarTurmasParaFiltro, carregarFazendasParaFiltro, configurarEventListeners, gerarRelatorio, ordenarDados, exibirRelatorio, calcularEstatisticas, preencherTabelaDetalhes, agruparEOrdenarPorFuncionario, adicionarLinhaCabecalhoFuncionario, adicionarLinhaTotalFuncionario, adicionarLinhaCabecalhoData, adicionarLinhaSubtotalData) ...
 
     // Função para configurar datas padrão
     function configurarDatasPadrao() {
@@ -745,7 +745,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             // --- CÁLCULO PRÉVIO DO NÚMERO TOTAL DE PÁGINAS ---
             // Simula a geração para contar as páginas totais ANTES de gerar o PDF final
             const dummyDoc = new jsPDF('p', 'mm', 'a4');
-            let currentPageCount = 0;
+            let currentPageCount = 0; // Renomeado para evitar conflito com variável global
+            let lastPageNumber = 0;
+
             for (let i = 0; i < funcionarioIdsOrdenados.length; i++) {
                  if (i > 0) {
                      dummyDoc.addPage();
@@ -757,14 +759,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     startY: 95 + 40, // Simula posição inicial da tabela
                     head: [[' ']], // Cabeçalho mínimo
                     body: dadosFunc.map(() => [' ']), // Corpo com número correto de linhas
-                    margin: { top: 15, left: 15, right: 15 },
+                    margin: { top: 15, left: 15, right: 15, bottom: 15 }, // Margens simuladas
                     didDrawPage: function(data) {
-                         currentPageCount = data.pageNumber; // Atualiza a contagem a cada página desenhada
+                        lastPageNumber = data.pageNumber; // Guarda o número da última página desenhada
                     }
                  });
+                 currentPageCount = lastPageNumber; // Atualiza a contagem total com o número da última página
             }
-             // Adiciona a página do resumo geral se necessário
-            if (funcionarioIdsOrdenados.length > 1 || (funcionarioIdsOrdenados[0] === funcionarioFiltro.value && tipoRelatorio !== 'funcionario')) {
+             // Adiciona a página do resumo geral se necessário E se for relatório consolidado
+            if (!isIndividualReport && dadosRelatorio.length > 0) {
                 dummyDoc.addPage();
                 currentPageCount++;
             }
@@ -783,7 +786,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Usa a função já corrigida
                 const estatisticasFuncionario = calcularEstatisticas(dadosFuncionario);
 
-                // <<< NOVA LINHA - QUEBRA DE PÁGINA >>>
                 // Adiciona uma nova página ANTES de começar a desenhar o próximo funcionário (exceto para o primeiro)
                 if (i > 0) {
                     doc.addPage();
@@ -887,6 +889,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     { content: `R$ ${estatisticasFuncionario.totalValor.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } }
                 ]);
 
+                // Salva a página atual ANTES de gerar a tabela
+                const paginaAntesTabela = paginaAtualGlobal;
+
                 // Gera a tabela
                 doc.autoTable({
                     startY: yPosition,
@@ -909,38 +914,28 @@ document.addEventListener('DOMContentLoaded', async function() {
                     },
 
                     didDrawPage: function(data) {
-                        // Redesenha o cabeçalho base em páginas de continuação
-                        if (data.pageNumber > paginaAtualGlobal) { // Se autotable criou nova página
-                            drawBaseHeader(doc);
-                            paginaAtualGlobal = data.pageNumber; // Atualiza a página global atual
+                        // Se autotable criou nova página a partir da página inicial deste funcionário
+                        if (data.pageNumber > paginaAntesTabela) {
+                            drawBaseHeader(doc); // Redesenha cabeçalho base
                         }
+                        // Atualiza a página global atual SEMPRE que uma página é desenhada
+                        paginaAtualGlobal = data.pageNumber;
                          // Adiciona rodapé usando a contagem total pré-calculada
                          addFooter(doc, data.pageNumber, totalPagesCalculated);
-                    },
-                     // Antes de desenhar a célula, atualiza a página global se necessário (importante para tabelas longas)
-                     willDrawCell: function(data) {
-                         if (data.pageNumber > paginaAtualGlobal) {
-                              paginaAtualGlobal = data.pageNumber;
-                         }
-                     }
+                    }
                 });
             } // Fim do loop de funcionários
 
-            // 3. Adiciona o TOTAL GERAL na última página se for um relatório consolidado
+            // 3. Adiciona o TOTAL GERAL em uma nova página se for um relatório consolidado
             if (!isIndividualReport && dadosRelatorio.length > 0) {
 
-                // Verifica se há espaço suficiente na página atual, senão adiciona nova página
-                 const finalTableY = doc.lastAutoTable.finalY || 35; // Posição Y onde a última tabela terminou
-                 const spaceNeededForSummary = 40; // Espaço estimado para o resumo geral
-                 if (doc.internal.pageSize.getHeight() - finalTableY < spaceNeededForSummary) {
-                      doc.addPage();
-                      paginaAtualGlobal++;
-                      drawBaseHeader(doc); // Desenha o cabeçalho na nova página
-                      addFooter(doc, paginaAtualGlobal, totalPagesCalculated); // Adiciona rodapé na nova página
-                 }
+                // <<< CORREÇÃO - FORÇAR PÁGINA PARA RESUMO GERAL >>>
+                doc.addPage();
+                paginaAtualGlobal++;
+                drawBaseHeader(doc); // Desenha o cabeçalho na nova página
 
 
-                 let yStartTotal = doc.lastAutoTable.finalY + 15 || 40; // Começa após a última tabela ou no início
+                 let yStartTotal = 35; // Começa após o cabeçalho base
 
                  doc.setFontSize(12); // Tamanho maior para o título do resumo
                  doc.setTextColor(44, 85, 48);
@@ -971,11 +966,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                      headStyles: { fillColor: [44, 85, 48], textColor: 255, fontStyle: 'bold' },
                      footStyles: { fillColor: [44, 85, 48], textColor: 255, fontStyle: 'bold', fontSize: 10 }, // Rodapé destacado
                      alternateRowStyles: { fillColor: [245, 245, 245] }, // Cinza mais claro para alternar
-                     didDrawPage: function(data) { // Adiciona rodapé se o resumo geral criar nova página
-                          if (data.pageNumber > paginaAtualGlobal) {
-                              drawBaseHeader(doc);
-                              paginaAtualGlobal = data.pageNumber;
-                          }
+                     didDrawPage: function(data) { // Adiciona rodapé na página do resumo geral
                           addFooter(doc, paginaAtualGlobal, totalPagesCalculated);
                      }
                  });
