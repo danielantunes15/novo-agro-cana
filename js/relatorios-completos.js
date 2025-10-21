@@ -1,6 +1,7 @@
-// js/relatorios-completos.js - VERSÃO CORRIGIDA (COM 4 CASAS DECIMAIS NO PREÇO/M)
+// js/relatorios-completos.js - VERSÃO CORRIGIDA (COM 4 CASAS DECIMAIS NO PREÇO/M, CORREÇÃO DIÁRIA e QUEBRA DE PÁGINA POR FUNCIONÁRIO)
 
 document.addEventListener('DOMContentLoaded', async function() {
+    // ... (restante do código inicial: elementos DOM, variáveis, try/catch) ...
     // Elementos do DOM
     const loadingElement = document.getElementById('loading');
     const contentElement = document.getElementById('content');
@@ -8,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const tipoRelatorioSelect = document.getElementById('tipo-relatorio');
     const funcionarioFiltro = document.getElementById('funcionario-filtro');
     const turmaFiltro = document.getElementById('turma-filtro');
-    const fazendaFiltro = document.getElementById('fazenda-filtro'); 
+    const fazendaFiltro = document.getElementById('fazenda-filtro');
     const funcionarioGroup = document.getElementById('funcionario-group');
     const turmaGroup = document.getElementById('turma-group');
     const dataInicio = document.getElementById('data-inicio');
@@ -21,12 +22,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     const semDados = document.getElementById('sem-dados');
     const imprimirBtn = document.getElementById('imprimir-relatorio');
     const exportarPdfBtn = document.getElementById('exportar-pdf');
-    const exportarExcelBtn = document.getElementById('exportar-excel'); 
-    
+    const exportarExcelBtn = document.getElementById('exportar-excel');
+
     // Variáveis para armazenar dados
     let funcionarios = [];
     let turmas = [];
-    let fazendas = []; 
+    let fazendas = [];
     let dadosRelatorio = [];
 
     try {
@@ -39,17 +40,17 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Testar conexão
         await testarConexaoSupabase();
-        
+
         // Mostrar conteúdo principal
         if (loadingElement) loadingElement.style.display = 'none';
         if (contentElement) contentElement.style.display = 'block';
 
         // Configurar datas padrão (últimos 30 dias)
         configurarDatasPadrao();
-        
+
         // Carregar dados para os filtros
         await carregarDadosParaFiltros();
-        
+
         // Configurar event listeners
         configurarEventListeners();
 
@@ -61,14 +62,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (errorElement) errorElement.style.display = 'block';
     }
 
+
+    // ... (funções configurarDatasPadrao, carregarDadosParaFiltros, carregarFuncionariosParaFiltro, carregarTurmasParaFiltro, carregarFazendasParaFiltro, configurarEventListeners, gerarRelatorio, ordenarDados, exibirRelatorio, calcularEstatisticas) ...
+
     // Função para configurar datas padrão
     function configurarDatasPadrao() {
         if (!dataInicio || !dataFim) return;
-        
+
         const hoje = new Date();
         const trintaDiasAtras = new Date();
         trintaDiasAtras.setDate(hoje.getDate() - 30);
-        
+
         dataInicio.value = trintaDiasAtras.toISOString().split('T')[0];
         dataFim.value = hoje.toISOString().split('T')[0];
     }
@@ -78,14 +82,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         await Promise.all([
             carregarFuncionariosParaFiltro(),
             carregarTurmasParaFiltro(),
-            carregarFazendasParaFiltro() 
+            carregarFazendasParaFiltro()
         ]);
     }
 
     // Função para carregar funcionários
     async function carregarFuncionariosParaFiltro() {
         if (!funcionarioFiltro) return;
-        
+
         try {
             const { data, error } = await supabase
                 .from('funcionarios')
@@ -95,11 +99,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     turmas(nome)
                 `)
                 .order('nome');
-                
+
             if (error) throw error;
-            
+
             funcionarios = data || [];
-            
+
             funcionarioFiltro.innerHTML = '<option value="">Selecione o funcionário</option><option value="todos">Todos os Funcionários</option>';
             funcionarios.forEach(funcionario => {
                 const option = document.createElement('option');
@@ -107,9 +111,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 option.textContent = `${funcionario.nome} - ${funcionario.turmas?.nome || 'Sem turma'}`;
                 funcionarioFiltro.appendChild(option);
             });
-            
+
             console.log(`✅ ${funcionarios.length} funcionários carregados`);
-            
+
         } catch (error) {
             console.error('Erro ao carregar funcionários:', error);
             mostrarMensagem('Erro ao carregar lista de funcionários', 'error');
@@ -119,17 +123,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Função para carregar turmas
     async function carregarTurmasParaFiltro() {
         if (!turmaFiltro) return;
-        
+
         try {
             const { data, error } = await supabase
                 .from('turmas')
                 .select('id, nome')
                 .order('nome');
-                
+
             if (error) throw error;
-            
+
             turmas = data || [];
-            
+
             turmaFiltro.innerHTML = '<option value="">Selecione a turma</option><option value="todos">Todas as Turmas</option>';
             turmas.forEach(turma => {
                 const option = document.createElement('option');
@@ -137,9 +141,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 option.textContent = turma.nome;
                 turmaFiltro.appendChild(option);
             });
-            
+
             console.log(`✅ ${turmas.length} turmas carregadas`);
-            
+
         } catch (error) {
             console.error('Erro ao carregar turmas:', error);
             mostrarMensagem('Erro ao carregar lista de turmas', 'error');
@@ -149,17 +153,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Função para carregar fazendas
     async function carregarFazendasParaFiltro() {
         if (!fazendaFiltro) return;
-        
+
         try {
             const { data, error } = await supabase
                 .from('fazendas')
                 .select('id, nome')
                 .order('nome');
-                
+
             if (error) throw error;
-            
+
             fazendas = data || [];
-            
+
             fazendaFiltro.innerHTML = '<option value="">Todas as Fazendas</option><option value="todos">Todas as Fazendas</option>';
             fazendas.forEach(fazenda => {
                 const option = document.createElement('option');
@@ -167,9 +171,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 option.textContent = fazenda.nome;
                 fazendaFiltro.appendChild(option);
             });
-            
+
             console.log(`✅ ${fazendas.length} fazendas carregadas`);
-            
+
         } catch (error) {
             console.error('Erro ao carregar fazendas:', error);
             mostrarMensagem('Erro ao carregar lista de fazendas', 'error');
@@ -194,19 +198,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             });
         }
-        
+
         if (gerarRelatorioBtn) {
             gerarRelatorioBtn.addEventListener('click', gerarRelatorio);
         }
-        
+
         if (limparFiltrosBtn) {
             limparFiltrosBtn.addEventListener('click', limparFiltros);
         }
-        
+
         if (imprimirBtn) {
             imprimirBtn.addEventListener('click', imprimirRelatorio);
         }
-        
+
         if (exportarPdfBtn) {
             exportarPdfBtn.addEventListener('click', exportarPDFProfissional);
         }
@@ -221,35 +225,35 @@ document.addEventListener('DOMContentLoaded', async function() {
         const tipoRelatorio = tipoRelatorioSelect.value;
         const funcionarioId = funcionarioFiltro.value;
         const turmaId = turmaFiltro.value;
-        const fazendaId = fazendaFiltro.value; 
+        const fazendaId = fazendaFiltro.value;
         const dataInicioValue = dataInicio.value;
         const dataFimValue = dataFim.value;
         const ordenacao = ordenacaoSelect.value;
         const agruparPorData = agruparPorDataCheck.checked;
-        
+
         // Validações
         if (!dataInicioValue || !dataFimValue) {
             mostrarMensagem('Preencha as datas de início e fim!', 'error');
             return;
         }
-        
+
         if (new Date(dataInicioValue) > new Date(dataFimValue)) {
             mostrarMensagem('A data de início não pode ser maior que a data de fim!', 'error');
             return;
         }
-        
+
         // Validar período máximo (365 dias)
         const diffTime = Math.abs(new Date(dataFimValue) - new Date(dataInicioValue));
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays > 365) {
             mostrarMensagem('O período máximo permitido é de 365 dias', 'error');
             return;
         }
-        
+
         try {
             mostrarMensagem('Gerando relatório... Aguarde', 'success');
-            
+
             let query = supabase
                 .from('cortes_funcionarios')
                 .select(`
@@ -274,32 +278,33 @@ document.addEventListener('DOMContentLoaded', async function() {
                 `)
                 .gte('apontamentos.data_corte', dataInicioValue)
                 .lte('apontamentos.data_corte', dataFimValue);
-            
+
             // Aplicar filtros conforme o tipo de relatório
             if (tipoRelatorio === 'funcionario' && funcionarioId && funcionarioId !== 'todos') {
                 query = query.eq('funcionario_id', funcionarioId);
             } else if (tipoRelatorio === 'turma' && turmaId && turmaId !== 'todos') {
+                // CORREÇÃO: Filtrar pela ID da turma na tabela 'funcionarios'
                 query = query.eq('funcionarios.turma', turmaId);
             }
-            
+
             // Aplicar filtro de Fazenda
             if (fazendaId && fazendaId !== 'todos') {
                 query = query.eq('apontamentos.fazenda_id', fazendaId);
             }
 
             const { data: apontamentos, error } = await query;
-                
+
             if (error) throw error;
-            
+
             dadosRelatorio = apontamentos || [];
-            
+
             // Ordenar dados
             ordenarDados(dadosRelatorio, ordenacao);
-            
+
             // Exibir relatório
             if (dadosRelatorio.length > 0) {
                 // Passa o fazendaId para a função exibirRelatorio
-                exibirRelatorio(tipoRelatorio, funcionarioId, turmaId, fazendaId, dataInicioValue, dataFimValue, diffDays, agruparPorData); 
+                exibirRelatorio(tipoRelatorio, funcionarioId, turmaId, fazendaId, dataInicioValue, dataFimValue, diffDays, agruparPorData);
                 relatorioContainer.style.display = 'block';
                 semDados.style.display = 'none';
                 mostrarMensagem(`Relatório gerado com ${dadosRelatorio.length} registros de produção`);
@@ -308,7 +313,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 semDados.style.display = 'block';
                 mostrarMensagem('Nenhum registro encontrado para os filtros selecionados', 'error');
             }
-            
+
         } catch (error) {
             console.error('Erro ao gerar relatório:', error);
             mostrarMensagem('Erro ao gerar relatório: ' + error.message, 'error');
@@ -333,18 +338,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
                 break;
             case 'valor_asc':
-                // CORREÇÃO: Ordena pelo valor recalculado
+                // CORREÇÃO: Ordena pelo valor correto (calculado ou salvo)
                 dados.sort((a, b) => {
-                    const valorA = (a.metros || 0) * (a.apontamentos?.preco_por_metro || 0);
-                    const valorB = (b.metros || 0) * (b.apontamentos?.preco_por_metro || 0);
+                    const metrosA = a.metros || 0;
+                    const precoMetroA = a.apontamentos?.preco_por_metro || 0;
+                    const isDiariaA = metrosA === 0.01 && precoMetroA === 0;
+                    const valorA = isDiariaA ? (a.valor || 0) : (metrosA * precoMetroA);
+
+                    const metrosB = b.metros || 0;
+                    const precoMetroB = b.apontamentos?.preco_por_metro || 0;
+                    const isDiariaB = metrosB === 0.01 && precoMetroB === 0;
+                    const valorB = isDiariaB ? (b.valor || 0) : (metrosB * precoMetroB);
+
                     return valorA - valorB;
                 });
                 break;
             case 'valor_desc':
-                // CORREÇÃO: Ordena pelo valor recalculado
+                // CORREÇÃO: Ordena pelo valor correto (calculado ou salvo)
                 dados.sort((a, b) => {
-                    const valorA = (a.metros || 0) * (a.apontamentos?.preco_por_metro || 0);
-                    const valorB = (b.metros || 0) * (b.apontamentos?.preco_por_metro || 0);
+                    const metrosA = a.metros || 0;
+                    const precoMetroA = a.apontamentos?.preco_por_metro || 0;
+                    const isDiariaA = metrosA === 0.01 && precoMetroA === 0;
+                    const valorA = isDiariaA ? (a.valor || 0) : (metrosA * precoMetroA);
+
+                    const metrosB = b.metros || 0;
+                    const precoMetroB = b.apontamentos?.preco_por_metro || 0;
+                    const isDiariaB = metrosB === 0.01 && precoMetroB === 0;
+                    const valorB = isDiariaB ? (b.valor || 0) : (metrosB * precoMetroB);
+
                     return valorB - valorA;
                 });
                 break;
@@ -372,7 +393,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         } else {
             tipoTexto = 'Relatório Geral';
         }
-        
+
         // Adiciona Fazenda no cabeçalho do relatório se filtrado por uma fazenda específica
         if (fazendaId && fazendaId !== 'todos') {
             const fazenda = fazendas.find(f => f.id === fazendaId);
@@ -380,50 +401,51 @@ document.addEventListener('DOMContentLoaded', async function() {
                 tipoTexto += (tipoTexto === 'Relatório Geral' ? '' : ' | ') + `Fazenda: ${fazenda.nome}`;
             }
         }
-        
+
         document.getElementById('relatorio-tipo').textContent = tipoTexto;
         document.getElementById('relatorio-periodo').textContent = `${formatarData(dataInicio)} a ${formatarData(dataFim)}`;
         document.getElementById('relatorio-emissao').textContent = formatarData(new Date());
         document.getElementById('relatorio-registros').textContent = dadosRelatorio.length;
-        
+
         // Calcular totais e estatísticas (JÁ CORRIGIDO)
         const estatisticas = calcularEstatisticas(dadosRelatorio);
-        
+
         // Atualizar cartões de resumo
         document.getElementById('total-dias').textContent = estatisticas.diasTrabalhados;
         document.getElementById('total-funcionarios').textContent = estatisticas.totalFuncionarios;
         document.getElementById('total-metros').textContent = estatisticas.totalMetros.toFixed(2);
         document.getElementById('total-valor').textContent = `R$ ${estatisticas.totalValor.toFixed(2)}`;
-        
+
         // Preencher tabela de detalhes (JÁ CORRIGIDO)
         preencherTabelaDetalhes(dadosRelatorio, agruparPorData);
     }
 
-    // Função para calcular estatísticas (CORRIGIDA)
-    // Garante que o valor total seja sempre recalculado
+    // Função para calcular estatísticas (CORRIGIDA PARA DIÁRIA)
+    // Garante que o valor total use o valor salvo para diárias
     function calcularEstatisticas(dados) {
         let totalMetros = 0;
         let totalValor = 0;
         const diasTrabalhados = new Set();
         const funcionariosUnicos = new Set();
-        
+
         dados.forEach(item => {
             const apontamento = item.apontamentos;
             if (!apontamento) return;
-            
-            // *** INÍCIO DA CORREÇÃO ***
-            // Recalcula o valor baseado nos dados mestres, ignorando o item.valor salvo
+
             const metros = item.metros || 0;
             const precoPorMetro = apontamento.preco_por_metro || 0;
-            const valorCorreto = metros * precoPorMetro;
-            // *** FIM DA CORREÇÃO ***
+            const isDiaria = metros === 0.01 && precoPorMetro === 0; // <<< CORREÇÃO: Identifica diária
+            const valorCorreto = isDiaria ? (item.valor || 0) : (metros * precoPorMetro); // <<< CORREÇÃO: Usa valor salvo se for diária
 
-            totalMetros += metros;
-            totalValor += valorCorreto; // Usa o valor recalculado
+            // Só soma metros se não for diária (metros > 0.01)
+            if (!isDiaria) {
+                totalMetros += metros;
+            }
+            totalValor += valorCorreto; // Usa o valor correto (calculado ou salvo)
             diasTrabalhados.add(apontamento.data_corte);
             funcionariosUnicos.add(item.funcionarios?.id);
         });
-        
+
         return {
             totalMetros,
             totalValor,
@@ -432,112 +454,120 @@ document.addEventListener('DOMContentLoaded', async function() {
         };
     }
 
-    // Função para preencher tabela de detalhes (CORRIGIDA)
-    // Garante que o valor exibido e somado seja sempre recalculado
+    // Função para preencher tabela de detalhes (CORRIGIDA PARA DIÁRIA)
+    // Garante que o valor exibido e somado use o valor salvo para diárias
     function preencherTabelaDetalhes(dados, agruparPorData) {
         const tbody = document.getElementById('detalhes-producao');
         if (!tbody) return;
-        
+
         tbody.innerHTML = '';
-        
+
         const tipoRelatorio = tipoRelatorioSelect.value;
-        
+
         // Agrupar e ordenar por Funcionário (se for geral ou turma) e Data
         let dadosAgrupados = dados;
         if (tipoRelatorio === 'geral' || tipoRelatorio === 'turma') {
             dadosAgrupados = agruparEOrdenarPorFuncionario(dados);
         }
-        
+
         let dataAtual = '';
         let funcionarioAtual = '';
         let subtotalData = { metros: 0, valor: 0 };
         let totalFuncionario = { metros: 0, valor: 0 };
-        
+
         dadosAgrupados.forEach((item, index) => {
             const apontamento = item.apontamentos;
             const funcionario = item.funcionarios;
-            
+
             if (!apontamento || !funcionario) return;
-            
+
             const dataCorte = apontamento.data_corte;
             const dataFormatada = formatarData(dataCorte);
             const nomeFuncionario = funcionario.nome || 'N/A';
-            
-            // *** INÍCIO DA CORREÇÃO ***
-            // Recalcula o valor para exibição e soma
+
             const metros = item.metros || 0;
-            const precoPorMetro = apontamento?.preco_por_metro || 0; 
-            const valorCorreto = metros * precoPorMetro;
-            // *** FIM DA CORREÇÃO ***
-            
+            const precoPorMetro = apontamento?.preco_por_metro || 0;
+            const isDiaria = metros === 0.01 && precoPorMetro === 0; // <<< CORREÇÃO: Identifica diária
+            const valorCorreto = isDiaria ? (item.valor || 0) : (metros * precoPorMetro); // <<< CORREÇÃO: Usa valor salvo se for diária
+            const metrosExibicao = isDiaria ? 'DIÁRIA' : metros.toFixed(2); // <<< CORREÇÃO: Exibe "DIÁRIA" nos metros
+            const precoMetroExibicao = isDiaria ? 'N/A' : `R$ ${precoPorMetro.toFixed(4)}`; // <<< CORREÇÃO: Exibe "N/A" no preço/m
+
             // --- INÍCIO: Agrupamento/Totalização por Funcionário (para 'geral' e 'turma') ---
             if ((tipoRelatorio === 'geral' || tipoRelatorio === 'turma') && funcionarioAtual !== funcionario.id) {
                 if (funcionarioAtual !== '') {
                     // Adicionar TOTAL do Funcionário Anterior
                     adicionarLinhaTotalFuncionario(tbody, totalFuncionario, funcionarioAtual);
                     // Reinicia a data após o total do funcionário, para que o próximo funcione corretamente
-                    dataAtual = ''; 
+                    dataAtual = '';
                 }
-                
+
                 // Reiniciar totais
                 funcionarioAtual = funcionario.id;
                 subtotalData = { metros: 0, valor: 0 };
                 totalFuncionario = { metros: 0, valor: 0 };
-                
+
                 // Adicionar CABEÇALHO do NOVO Funcionário
                 adicionarLinhaCabecalhoFuncionario(tbody, nomeFuncionario, funcionario.turmas?.nome || 'Sem turma');
             }
             // --- FIM: Agrupamento/Totalização por Funcionário ---
-            
+
             // --- INÍCIO: Agrupamento/Totalização por Data ---
             if (agruparPorData && dataAtual !== dataCorte) {
                 if (dataAtual !== '') {
                     // Adicionar subtotal da data anterior
                     adicionarLinhaSubtotalData(tbody, subtotalData, dataAtual);
                 }
-                
+
                 // Reiniciar subtotal para nova data
                 dataAtual = dataCorte;
                 subtotalData = { metros: 0, valor: 0 };
-                
+
                 // Adicionar cabeçalho da nova data
                 adicionarLinhaCabecalhoData(tbody, dataFormatada);
             }
             // --- FIM: Agrupamento/Totalização por Data ---
-            
+
             // Linha de Detalhe
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${dataFormatada}</td>
                 <td>${nomeFuncionario}</td>
                 <td>${funcionario.turmas?.nome || 'Sem turma'}</td>
-                <td>${apontamento.fazendas?.nome || 'N/A'}</td>
-                <td>${apontamento.talhoes?.numero || 'N/A'}</td>
-                <td>R$ ${precoPorMetro.toFixed(4)}</td> <td>${metros.toFixed(2)}</td>
-                <td>R$ ${valorCorreto.toFixed(2)}</td> `;
+                <td>${apontamento.fazendas?.nome || 'N/A (Diária)'}</td>
+                <td>${apontamento.talhoes?.numero || 'N/A (Diária)'}</td>
+                <td>${precoMetroExibicao}</td>
+                <td>${metrosExibicao}</td>
+                <td>R$ ${valorCorreto.toFixed(2)}</td>
+            `; // <<< CORREÇÃO: Usa valores corrigidos
             tbody.appendChild(tr);
-            
+
             // Acumular totais
             if (agruparPorData) {
-                subtotalData.metros += metros;
-                subtotalData.valor += valorCorreto; // Soma o valor recalculado
+                // Só soma metros se não for diária
+                if (!isDiaria) {
+                    subtotalData.metros += metros;
+                }
+                subtotalData.valor += valorCorreto; // Soma o valor correto
             }
             if (tipoRelatorio === 'geral' || tipoRelatorio === 'turma') {
-                totalFuncionario.metros += metros;
-                totalFuncionario.valor += valorCorreto; // Soma o valor recalculado
+                // Só soma metros se não for diária
+                 if (!isDiaria) {
+                    totalFuncionario.metros += metros;
+                }
+                totalFuncionario.valor += valorCorreto; // Soma o valor correto
             }
         });
-        
+
         // Adicionar subtotal final (da última data)
         if (agruparPorData && dataAtual !== '') {
             adicionarLinhaSubtotalData(tbody, subtotalData, dataAtual);
         }
-        
+
         // Adicionar total do último funcionário (se for agrupado)
         if ((tipoRelatorio === 'geral' || tipoRelatorio === 'turma') && funcionarioAtual !== '') {
             adicionarLinhaTotalFuncionario(tbody, totalFuncionario, funcionarioAtual);
         }
-        
+
         // Adicionar linha de totais gerais (Já usa a função 'calcularEstatisticas' corrigida)
         const estatisticas = calcularEstatisticas(dados);
         const trTotal = document.createElement('tr');
@@ -549,7 +579,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         `;
         tbody.appendChild(trTotal);
     }
-    
+
+
     // NOVO: Função para agrupar e ordenar por Funcionário (necessário para o detalhamento individual)
     function agruparEOrdenarPorFuncionario(dados) {
         // 1. Criar uma cópia dos dados
@@ -559,7 +590,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         dadosCopia.sort((a, b) => {
             const nomeA = a.funcionarios?.nome || 'ZZZ';
             const nomeB = b.funcionarios?.nome || 'ZZZ';
-            
+
             if (nomeA < nomeB) return -1;
             if (nomeA > nomeB) return 1;
 
@@ -571,7 +602,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         return dadosCopia;
     }
-    
+
     // NOVO: Funções auxiliares para adicionar linhas
     function adicionarLinhaCabecalhoFuncionario(tbody, nome, turma) {
          const trHeader = document.createElement('tr');
@@ -583,21 +614,23 @@ document.addEventListener('DOMContentLoaded', async function() {
          `;
          tbody.appendChild(trHeader);
     }
-    
+
     function adicionarLinhaTotalFuncionario(tbody, totais, funcionarioId) {
         const funcionario = funcionarios.find(f => f.id === funcionarioId);
         const nome = funcionario?.nome || 'Total do Funcionário';
 
         const trTotal = document.createElement('tr');
         trTotal.style.cssText = 'font-weight: bold; background: #c3e6cb; color: #155724;';
+        // <<< CORREÇÃO: Mostra 'N/A' se não houver metros
+        const metrosTotal = totais.metros > 0 ? totais.metros.toFixed(2) : 'N/A';
         trTotal.innerHTML = `
             <td colspan="6" style="text-align: right;">TOTAL DE ${nome.toUpperCase()}</td>
-            <td>${totais.metros.toFixed(2)}</td>
+            <td>${metrosTotal}</td>
             <td>R$ ${totais.valor.toFixed(2)}</td>
         `;
         tbody.appendChild(trTotal);
     }
-    
+
     function adicionarLinhaCabecalhoData(tbody, dataFormatada) {
          const trHeader = document.createElement('tr');
          trHeader.className = 'group-header';
@@ -608,21 +641,23 @@ document.addEventListener('DOMContentLoaded', async function() {
          `;
          tbody.appendChild(trHeader);
     }
-    
+
     function adicionarLinhaSubtotalData(tbody, totais, dataCorte) {
          const trSubtotal = document.createElement('tr');
          trSubtotal.className = 'group-header';
+         // <<< CORREÇÃO: Mostra 'N/A' nos metros do subtotal se só houver diárias
+         const metrosSubtotal = totais.metros > 0 ? totais.metros.toFixed(2) : 'N/A';
          trSubtotal.innerHTML = `
              <td colspan="6" style="text-align: right; background: #e9ecef;">Subtotal ${formatarData(dataCorte)}</td>
-             <td style="background: #e9ecef;">${totais.metros.toFixed(2)}</td>
+             <td style="background: #e9ecef;">${metrosSubtotal}</td>
              <td style="background: #e9ecef;">R$ ${totais.valor.toFixed(2)}</td>
          `;
          tbody.appendChild(trSubtotal);
     }
 
 
-    // FUNÇÃO PDF (CORRIGIDA)
-    // Garante que o PDF recalcule os valores e exiba 4 casas decimais
+    // FUNÇÃO PDF (CORRIGIDA PARA DIÁRIA e QUEBRA DE PÁGINA)
+    // Garante que o PDF use o valor salvo para diárias e quebre página por funcionário
     async function exportarPDFProfissional() {
         if (dadosRelatorio.length === 0) {
             mostrarMensagem('Gere o relatório primeiro ou não há dados para exportar.', 'error');
@@ -631,250 +666,337 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         try {
             mostrarMensagem('Gerando PDF profissional...', 'success');
-            
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4'); // Configuração A4
-            
+
             const tipoRelatorio = tipoRelatorioSelect.value;
             const nomeRelatorio = document.getElementById('relatorio-tipo').textContent;
             const dataInicioValue = dataInicio.value;
             const dataFimValue = dataFim.value;
-            
+
             // Usa a função já corrigida
-            const estatisticasGerais = calcularEstatisticas(dadosRelatorio); 
+            const estatisticasGerais = calcularEstatisticas(dadosRelatorio);
 
             // 1. Preparar dados para loop (agrupa por funcionário se for geral/turma)
             let dadosPorFuncionario = {};
             let isIndividualReport = (tipoRelatorio === 'funcionario' && funcionarioFiltro.value !== 'todos');
 
-            if (tipoRelatorio === 'geral' || tipoRelatorio === 'turma') {
-                 // Agrupa e ordena para iteração
-                 const dadosOrdenados = agruparEOrdenarPorFuncionario(dadosRelatorio); 
+            // Agrupa sempre se não for individual, para garantir a ordem e quebra de página
+             if (!isIndividualReport) {
+                 const dadosOrdenados = agruparEOrdenarPorFuncionario(dadosRelatorio);
                  dadosOrdenados.forEach(item => {
                      const funcId = item.funcionarios?.id;
                      if (funcId) {
                          if (!dadosPorFuncionario[funcId]) {
-                             dadosPorFuncionario[funcId] = [];
+                             dadosPorFuncionario[funcId] = { nome: item.funcionarios?.nome || 'N/A', dados: [] };
                          }
-                         dadosPorFuncionario[funcId].push(item);
+                         dadosPorFuncionario[funcId].dados.push(item);
+                     } else {
+                         // Trata caso funcionário seja nulo (pouco provável, mas seguro)
+                          if (!dadosPorFuncionario['sem_funcionario']) {
+                             dadosPorFuncionario['sem_funcionario'] = { nome: 'Sem Funcionário', dados: [] };
+                         }
+                         dadosPorFuncionario['sem_funcionario'].dados.push(item);
                      }
                  });
             } else {
-                // Relatório Consolidado (Funcionário 'todos' ou Turma 'todos') ou Funcionário Individual
-                dadosPorFuncionario['unico'] = dadosRelatorio;
+                 // Relatório Funcionário Individual
+                dadosPorFuncionario[funcionarioFiltro.value] = { nome: funcionarios.find(f => f.id === funcionarioFiltro.value)?.nome || 'Funcionário', dados: dadosRelatorio };
             }
-            
-            const funcionarioIds = Object.keys(dadosPorFuncionario);
-            let totalPaginas = 0;
+
+            // Ordena os funcionários pelo nome para impressão
+            const funcionarioIdsOrdenados = Object.keys(dadosPorFuncionario).sort((a, b) => {
+                 if (a === 'sem_funcionario') return 1; // Coloca 'sem funcionário' no final
+                 if (b === 'sem_funcionario') return -1;
+                 return dadosPorFuncionario[a].nome.localeCompare(dadosPorFuncionario[b].nome);
+            });
+
+
+            let totalPaginas = 0; // Contagem global de páginas para o rodapé
 
             // Função para desenhar o cabeçalho base da página
             const drawBaseHeader = (doc) => {
                 const pageWidth = doc.internal.pageSize.getWidth();
-                doc.setFillColor(44, 85, 48);
-                doc.rect(0, 0, pageWidth, 30, 'F');
-                doc.setFontSize(16);
+                doc.setFillColor(44, 85, 48); // Verde escuro
+                doc.rect(0, 0, pageWidth, 25, 'F'); // Altura reduzida do cabeçalho
+                doc.setFontSize(14); // Fonte ligeiramente menor
                 doc.setTextColor(255, 255, 255);
                 doc.setFont('helvetica', 'bold');
-                doc.text('AGRO CANA FORTE', pageWidth / 2, 15, { align: 'center' });
-                doc.setFontSize(12);
-                doc.text('ESPELHO DE PRODUÇÃO - CORTE DE CANA', pageWidth / 2, 22, { align: 'center' }); 
+                doc.text('AGRO CANA FORTE', pageWidth / 2, 10, { align: 'center' }); // Ajuste Y
+                doc.setFontSize(10); // Fonte menor para subtítulo
+                doc.text('ESPELHO DE PRODUÇÃO - CORTE DE CANA', pageWidth / 2, 17, { align: 'center' }); // Ajuste Y
             };
 
+            // Função para adicionar rodapé
+            const addFooter = (doc, pageNum, totalPages) => {
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text(
+                    `Página ${pageNum} de ${totalPages} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
+                    pageWidth / 2,
+                    pageHeight - 10,
+                    { align: 'center' }
+                );
+            };
+
+            // --- CÁLCULO PRÉVIO DO NÚMERO TOTAL DE PÁGINAS ---
+            // Simula a geração para contar as páginas totais ANTES de gerar o PDF final
+            const dummyDoc = new jsPDF('p', 'mm', 'a4');
+            let currentPageCount = 0;
+            for (let i = 0; i < funcionarioIdsOrdenados.length; i++) {
+                 if (i > 0) {
+                     dummyDoc.addPage();
+                 }
+                 const funcId = funcionarioIdsOrdenados[i];
+                 const dadosFunc = dadosPorFuncionario[funcId].dados;
+                 // Simula AutoTable para pegar a contagem de páginas que ela usaria
+                 dummyDoc.autoTable({
+                    startY: 95 + 40, // Simula posição inicial da tabela
+                    head: [[' ']], // Cabeçalho mínimo
+                    body: dadosFunc.map(() => [' ']), // Corpo com número correto de linhas
+                    margin: { top: 15, left: 15, right: 15 },
+                    didDrawPage: function(data) {
+                         currentPageCount = data.pageNumber; // Atualiza a contagem a cada página desenhada
+                    }
+                 });
+            }
+             // Adiciona a página do resumo geral se necessário
+            if (funcionarioIdsOrdenados.length > 1 || (funcionarioIdsOrdenados[0] === funcionarioFiltro.value && tipoRelatorio !== 'funcionario')) {
+                dummyDoc.addPage();
+                currentPageCount++;
+            }
+            const totalPagesCalculated = currentPageCount > 0 ? currentPageCount : 1; // Garante pelo menos 1 página
+            // --- FIM DO CÁLCULO PRÉVIO ---
+
             // 2. Iterar sobre cada funcionário (ou o grupo único)
-            for (let i = 0; i < funcionarioIds.length; i++) {
-                const funcId = funcionarioIds[i];
-                const dadosFuncionario = dadosPorFuncionario[funcId];
-                
+            let paginaAtualGlobal = 1; // Reinicia contagem para o PDF real
+            for (let i = 0; i < funcionarioIdsOrdenados.length; i++) {
+                const funcId = funcionarioIdsOrdenados[i];
+                // const dadosFuncionario = dadosPorFuncionario[funcId]; // Objeto com nome e dados
+                const dadosFuncionario = dadosPorFuncionario[funcId].dados; // Apenas os dados
+                const nomeFuncionarioAtual = dadosPorFuncionario[funcId].nome; // Pega o nome
+
+
                 // Usa a função já corrigida
                 const estatisticasFuncionario = calcularEstatisticas(dadosFuncionario);
-                
-                // Se não for a primeira iteração E se o relatório for Geral/Turma (multi-funcionário), adiciona uma nova página
-                if (i > 0 && (tipoRelatorio === 'geral' || tipoRelatorio === 'turma')) {
+
+                // <<< NOVA LINHA - QUEBRA DE PÁGINA >>>
+                // Adiciona uma nova página ANTES de começar a desenhar o próximo funcionário (exceto para o primeiro)
+                if (i > 0) {
                     doc.addPage();
-                } else if (i > 0 && isIndividualReport) {
-                    // Se for relatório de funcionário individual, não adiciona página (apenas um relatório)
-                    break;
+                    paginaAtualGlobal++; // Incrementa contador global real
                 }
 
-                // --- 2.1. Desenhar o Cabeçalho (Página 1) ---
+                // --- 2.1. Desenhar o Cabeçalho (Página Atual) ---
                 drawBaseHeader(doc);
-                
-                let yPosition = 40;
-                
+
+                let yPosition = 35; // Começa mais cedo após reduzir cabeçalho
+
                 // --- 2.2. Informações Específicas do Relatório/Funcionário ---
-                doc.setFillColor(240, 240, 240);
-                doc.rect(15, yPosition, doc.internal.pageSize.getWidth() - 30, 45, 'F');
-                
-                doc.setFontSize(10);
-                doc.setTextColor(0, 0, 0);
-                doc.setFont('helvetica', 'normal');
-                
-                let funcNome = 'N/A';
-                let funcTurma = 'N/A';
+                 doc.setFontSize(11); // Tamanho um pouco maior para o título do bloco
+                 doc.setTextColor(0, 0, 0);
+                 doc.setFont('helvetica', 'bold');
+
                 let funcHeader = 'RELATÓRIO CONSOLIDADO';
-
-                if (funcId !== 'unico') {
+                 if (!isIndividualReport && funcId !== 'sem_funcionario') {
                     // Relatório Individual por Funcionário (dentro do loop do Geral/Turma)
-                    const func = funcionarios.find(f => f.id === funcId);
-                    funcNome = func?.nome || 'N/A';
-                    funcTurma = func?.turmas?.nome || 'N/A';
-                    funcHeader = `RELATÓRIO INDIVIDUAL - ${funcNome}`;
-                } else {
-                    funcHeader = nomeRelatorio;
-                }
+                     funcHeader = `RELATÓRIO INDIVIDUAL - ${nomeFuncionarioAtual}`; // Usa o nome pego do objeto
+                 } else if (isIndividualReport) {
+                     funcHeader = `RELATÓRIO INDIVIDUAL - ${nomeFuncionarioAtual}`; // Usa o nome pego do objeto
+                 } else if (funcId === 'sem_funcionario') {
+                     funcHeader = 'REGISTROS SEM FUNCIONÁRIO ASSOCIADO';
+                 } else { // Caso Geral/Turma 'todos'
+                     funcHeader = nomeRelatorio;
+                 }
 
-                
-                let yStartInfo = yPosition + 10;
-                doc.setFont('helvetica', 'bold');
-                doc.text(`${funcHeader}`, 20, yStartInfo);
+                doc.text(funcHeader, 15, yPosition); // Alinha à esquerda
+                yPosition += 6;
+
+                doc.setFontSize(9); // Fonte menor para detalhes
                 doc.setFont('helvetica', 'normal');
-                doc.text(`Período: ${formatarData(dataInicioValue)} a ${formatarData(dataFimValue)}`, 20, yStartInfo + 6);
-                doc.text(`Data de Emissão: ${formatarData(new Date())}`, 20, yStartInfo + 12);
-                doc.text(`Total de Registros (Deste): ${dadosFuncionario.length}`, 20, yStartInfo + 18);
-                
-                // --- CORREÇÃO DE POSIÇÃO: Ajusta a yPosition para começar o Resumo abaixo do bloco de informações (que termina em 85mm) ---
-                yPosition = 95; // Posição segura para começar o resumo abaixo do bloco de 45mm (40 + 45 + 10 de margem)
-                
+                doc.text(`Período: ${formatarData(dataInicioValue)} a ${formatarData(dataFimValue)}`, 15, yPosition);
+                doc.text(`Data de Emissão: ${formatarData(new Date())}`, doc.internal.pageSize.getWidth() - 15, yPosition, { align: 'right' });
+                yPosition += 5;
+                doc.text(`Total de Registros (Deste): ${dadosFuncionario.length}`, 15, yPosition);
+                yPosition += 8; // Aumenta espaço antes do resumo
+
+
                 // --- 2.3. Resumo Estatístico (Deste Funcionário / Deste Relatório) ---
+                doc.setFontSize(10);
                 doc.setFont('helvetica', 'bold');
                 doc.text('RESUMO DA PRODUÇÃO', 15, yPosition);
-                
+                yPosition += 5; // Espaço antes dos itens
+
+                doc.setFontSize(9);
                 doc.setFont('helvetica', 'normal');
                 const resumo = [
                     `Dias Trabalhados: ${estatisticasFuncionario.diasTrabalhados}`,
-                    `Metros Cortados: ${estatisticasFuncionario.totalMetros.toFixed(2)} m`,
+                    // <<< CORREÇÃO: Mostra 'N/A' se não houver metros (só diárias)
+                    `Metros Cortados: ${estatisticasFuncionario.totalMetros > 0 ? estatisticasFuncionario.totalMetros.toFixed(2) + ' m' : 'N/A'}`,
                     `Valor Total: R$ ${estatisticasFuncionario.totalValor.toFixed(2)}`
                 ];
-                
-                // Adiciona informações de funcionários se for consolidado
-                if (funcId === 'unico' || isIndividualReport) {
+
+                // Adiciona info de funcionários APENAS se for relatório GERAL ou TURMA "TODOS"
+                if (!isIndividualReport && (funcionarioFiltro.value === 'todos' || turmaFiltro.value === 'todos')) {
                      resumo.unshift(`Funcionários Envolvidos: ${estatisticasFuncionario.totalFuncionarios}`);
                 }
-                
+
                 resumo.forEach((item, index) => {
-                    doc.text(item, 15, yPosition + 10 + (index * 6));
+                    doc.text(item, 15, yPosition + (index * 5)); // Espaçamento menor entre linhas
                 });
-                
+
                 // --- 2.4. Tabela de Detalhes ---
-                yPosition += 40; // Ajuste para começar a tabela após o resumo
+                yPosition += (resumo.length * 5) + 5; // Ajuste para começar a tabela após o resumo
                 const headers = [['Data', 'Funcionário', 'Turma', 'Fazenda', 'Talhão', 'Preço/m (R$)', 'Metros (m)', 'Valor (R$)']];
                 const tableData = [];
-                
+
                 dadosFuncionario.forEach(item => {
                     const apontamento = item.apontamentos;
                     const funcionario = item.funcionarios;
-                    
+
                     if (!apontamento || !funcionario) return;
-                    
-                    // *** INÍCIO DA CORREÇÃO ***
+
                     const metros = item.metros || 0;
-                    const precoPorMetro = apontamento?.preco_por_metro || 0; 
-                    const valorCorreto = metros * precoPorMetro;
-                    // *** FIM DA CORREÇÃO ***
+                    const precoPorMetro = apontamento?.preco_por_metro || 0;
+                    const isDiaria = metros === 0.01 && precoPorMetro === 0; // <<< CORREÇÃO: Identifica diária
+                    const valorCorreto = isDiaria ? (item.valor || 0) : (metros * precoPorMetro); // <<< CORREÇÃO: Usa valor salvo se for diária
+                    const metrosExibicao = isDiaria ? 'DIÁRIA' : metros.toFixed(2); // <<< CORREÇÃO: Exibe "DIÁRIA" nos metros
+                    const precoMetroExibicao = isDiaria ? 'N/A' : `R$ ${precoPorMetro.toFixed(4)}`; // <<< CORREÇÃO: Exibe "N/A" no preço/m
 
                     tableData.push([
                         formatarData(apontamento.data_corte),
                         funcionario.nome || 'N/A',
                         funcionario.turmas?.nome || 'Sem turma',
-                        apontamento.fazendas?.nome || 'N/A',
-                        apontamento.talhoes?.numero || 'N/A',
-                        `R$ ${precoPorMetro.toFixed(4)}`, // <--- ALTERAÇÃO AQUI
-                        metros.toFixed(2),
-                        `R$ ${valorCorreto.toFixed(2)}` // Usa o valor recalculado
+                        apontamento.fazendas?.nome || 'N/A (Diária)',
+                        apontamento.talhoes?.numero || 'N/A (Diária)',
+                        precoMetroExibicao, // <<< CORREÇÃO
+                        metrosExibicao, // <<< CORREÇÃO
+                        `R$ ${valorCorreto.toFixed(2)}` // <<< CORREÇÃO: Usa valor correto
                     ]);
                 });
-                
+
                 // Adicionar Totais do Funcionário/Grupo (Já usa 'estatisticasFuncionario' corrigido)
+                // <<< CORREÇÃO: Mostra 'N/A' se não houver metros
+                const metrosTotalFuncionario = estatisticasFuncionario.totalMetros > 0 ? estatisticasFuncionario.totalMetros.toFixed(2) : 'N/A';
                 tableData.push([
-                    { content: 'TOTAL DE PRODUÇÃO', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [195, 230, 203], halign: 'right' } },
-                    { content: estatisticasFuncionario.totalMetros.toFixed(2), styles: { fontStyle: 'bold', fillColor: [195, 230, 203] } },
-                    { content: `R$ ${estatisticasFuncionario.totalValor.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [195, 230, 203] } }
+                    { content: 'TOTAL DE PRODUÇÃO', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [220, 220, 220], halign: 'right' } }, // Cinza claro
+                    { content: metrosTotalFuncionario, styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } },
+                    { content: `R$ ${estatisticasFuncionario.totalValor.toFixed(2)}`, styles: { fontStyle: 'bold', fillColor: [220, 220, 220] } }
                 ]);
-                
+
                 // Gera a tabela
                 doc.autoTable({
                     startY: yPosition,
                     head: headers,
                     body: tableData,
-                    margin: { top: 15, left: 15, right: 15 },
-                    styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
-                    headStyles: { fillColor: [44, 85, 48], textColor: 255, fontStyle: 'bold' },
-                    
-                    didDrawPage: function(data) {
-                        // Redesenha o cabeçalho em páginas de continuação do mesmo funcionário
-                        if (data.pageNumber > totalPaginas + 1) { 
-                            drawBaseHeader(doc);
-                        }
-                        
-                        // Rodapé em todas as páginas
-                        const pageWidth = doc.internal.pageSize.getWidth();
-                        doc.setFontSize(8);
-                        doc.setTextColor(100, 100, 100);
-                        doc.text(
-                            `Página ${doc.internal.getNumberOfPages()} - Gerado em ${new Date().toLocaleDateString('pt-BR')}`,
-                            pageWidth / 2,
-                            doc.internal.pageSize.getHeight() - 10,
-                            { align: 'center' }
-                        );
-                    }
-                });
+                    theme: 'grid', // Usa tema com grid para melhor visualização
+                    margin: { top: 5, left: 15, right: 15, bottom: 15 }, // Ajusta margens
+                    styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' }, // Fonte e padding menores
+                    headStyles: { fillColor: [44, 85, 48], textColor: 255, fontStyle: 'bold', fontSize: 8 }, // Cabeçalho um pouco maior
+                    footStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' }, // Estilo do rodapé da tabela
+                    columnStyles: { // Ajuste de largura das colunas (aproximado)
+                        0: { cellWidth: 15 }, // Data
+                        1: { cellWidth: 45 }, // Funcionário
+                        2: { cellWidth: 20 }, // Turma
+                        3: { cellWidth: 25 }, // Fazenda
+                        4: { cellWidth: 12 }, // Talhão
+                        5: { cellWidth: 18 }, // Preço/m
+                        6: { cellWidth: 15 }, // Metros
+                        7: { cellWidth: 20 }  // Valor
+                    },
 
-                // Atualiza a contagem total de páginas para o rodapé
-                totalPaginas = doc.internal.getNumberOfPages();
-            }
-            
+                    didDrawPage: function(data) {
+                        // Redesenha o cabeçalho base em páginas de continuação
+                        if (data.pageNumber > paginaAtualGlobal) { // Se autotable criou nova página
+                            drawBaseHeader(doc);
+                            paginaAtualGlobal = data.pageNumber; // Atualiza a página global atual
+                        }
+                         // Adiciona rodapé usando a contagem total pré-calculada
+                         addFooter(doc, data.pageNumber, totalPagesCalculated);
+                    },
+                     // Antes de desenhar a célula, atualiza a página global se necessário (importante para tabelas longas)
+                     willDrawCell: function(data) {
+                         if (data.pageNumber > paginaAtualGlobal) {
+                              paginaAtualGlobal = data.pageNumber;
+                         }
+                     }
+                });
+            } // Fim do loop de funcionários
+
             // 3. Adiciona o TOTAL GERAL na última página se for um relatório consolidado
-            if (funcionarioIds.length > 1 || (funcionarioIds[0] === 'unico' && !isIndividualReport && dadosRelatorio.length > 0)) {
-                 
-                 if (funcionarioIds.length > 1) { // Só adiciona nova página se for relatório multifolha
-                    doc.addPage();
-                    drawBaseHeader(doc); // Desenha o cabeçalho
+            if (!isIndividualReport && dadosRelatorio.length > 0) {
+
+                // Verifica se há espaço suficiente na página atual, senão adiciona nova página
+                 const finalTableY = doc.lastAutoTable.finalY || 35; // Posição Y onde a última tabela terminou
+                 const spaceNeededForSummary = 40; // Espaço estimado para o resumo geral
+                 if (doc.internal.pageSize.getHeight() - finalTableY < spaceNeededForSummary) {
+                      doc.addPage();
+                      paginaAtualGlobal++;
+                      drawBaseHeader(doc); // Desenha o cabeçalho na nova página
+                      addFooter(doc, paginaAtualGlobal, totalPagesCalculated); // Adiciona rodapé na nova página
                  }
-                 
-                 let yStartTotal = 40;
-                 doc.setFontSize(14);
+
+
+                 let yStartTotal = doc.lastAutoTable.finalY + 15 || 40; // Começa após a última tabela ou no início
+
+                 doc.setFontSize(12); // Tamanho maior para o título do resumo
                  doc.setTextColor(44, 85, 48);
                  doc.setFont('helvetica', 'bold');
                  doc.text('RESUMO GERAL DO PERÍODO', 15, yStartTotal);
-                 
+
                  yStartTotal += 10;
-                 
+
                  // Usa 'estatisticasGerais' (já corrigido)
+                 // <<< CORREÇÃO: Mostra 'N/A' se não houver metros
+                 const metrosTotalGeral = estatisticasGerais.totalMetros > 0 ? estatisticasGerais.totalMetros.toFixed(2) : 'N/A';
                  const summaryData = [
                      ['Itens', 'Valor'],
                      ['Total de Dias Trabalhados', estatisticasGerais.diasTrabalhados.toString()],
                      ['Total de Funcionários Envolvidos', estatisticasGerais.totalFuncionarios.toString()],
-                     ['Total de Metros Cortados (m)', estatisticasGerais.totalMetros.toFixed(2)],
+                     ['Total de Metros Cortados (m)', metrosTotalGeral],
                      ['VALOR TOTAL GERAL (R$)', `R$ ${estatisticasGerais.totalValor.toFixed(2)}`],
                  ];
 
                  doc.autoTable({
                      startY: yStartTotal,
                      head: [summaryData[0]],
-                     body: summaryData.slice(1, summaryData.length - 1),
-                     foot: [[summaryData[summaryData.length - 1][0], summaryData[summaryData.length - 1][1]]],
-                     margin: { top: 15, left: 15, right: 15 },
-                     styles: { fontSize: 10, cellPadding: 3 },
+                     body: summaryData.slice(1, summaryData.length - 1), // Corpo sem o total
+                     foot: [[summaryData[summaryData.length - 1][0], summaryData[summaryData.length - 1][1]]], // Total no rodapé da tabela
+                     theme: 'striped', // Tema listrado
+                     margin: { top: 5, left: 15, right: 15, bottom: 15 },
+                     styles: { fontSize: 9, cellPadding: 2 }, // Fonte e padding
                      headStyles: { fillColor: [44, 85, 48], textColor: 255, fontStyle: 'bold' },
-                     footStyles: { fillColor: [44, 85, 48], textColor: 255, fontStyle: 'bold' },
-                     alternateRowStyles: { fillColor: [240, 240, 240] },
+                     footStyles: { fillColor: [44, 85, 48], textColor: 255, fontStyle: 'bold', fontSize: 10 }, // Rodapé destacado
+                     alternateRowStyles: { fillColor: [245, 245, 245] }, // Cinza mais claro para alternar
+                     didDrawPage: function(data) { // Adiciona rodapé se o resumo geral criar nova página
+                          if (data.pageNumber > paginaAtualGlobal) {
+                              drawBaseHeader(doc);
+                              paginaAtualGlobal = data.pageNumber;
+                          }
+                          addFooter(doc, paginaAtualGlobal, totalPagesCalculated);
+                     }
                  });
             }
-            
+
+
             // Salvar PDF
             const fileName = `relatorio_producao_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(fileName);
-            
+
             mostrarMensagem('PDF gerado com sucesso!', 'success');
-            
+
         } catch (error) {
             console.error('Erro ao gerar PDF:', error);
             mostrarMensagem('Erro ao gerar PDF: ' + error.message, 'error');
         }
     }
 
-    // FUNÇÃO EXCEL (CORRIGIDA)
-    // Garante que o Excel recalcule os valores e exiba 4 casas decimais
+
+    // FUNÇÃO EXCEL (CORRIGIDA PARA DIÁRIA)
+    // Garante que o Excel use o valor salvo para diárias
     function exportarExcel() {
         if (dadosRelatorio.length === 0) {
             mostrarMensagem('Gere o relatório primeiro ou não há dados para exportar.', 'error');
@@ -890,13 +1012,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                                         : dadosRelatorio;
 
             const headers = [
-                "Data", 
-                "Funcionario", 
-                "Turma", 
-                "Fazenda", 
-                "Talhao", 
-                "Preco/m (R$)", 
-                "Metros (m)", 
+                "Data",
+                "Funcionario",
+                "Turma",
+                "Fazenda",
+                "Talhao",
+                "Preco/m (R$)",
+                "Metros (m)",
                 "Valor (R$)"
             ].join(';');
 
@@ -907,36 +1029,35 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const data = formatarData(apontamento?.data_corte);
                 const nomeFuncionario = funcionario?.nome || 'N/A';
                 const nomeTurma = funcionario?.turmas?.nome || 'Sem turma';
-                const nomeFazenda = apontamento?.fazendas?.nome || 'N/A';
-                const numTalhao = apontamento?.talhoes?.numero || 'N/A';
-                
-                // *** INÍCIO DA CORREÇÃO ***
+                const nomeFazenda = apontamento?.fazendas?.nome || 'N/A (Diária)'; // <<< CORREÇÃO
+                const numTalhao = apontamento?.talhoes?.numero || 'N/A (Diária)'; // <<< CORREÇÃO
+
                 const metros = item.metros || 0;
                 const precoPorMetro = apontamento?.preco_por_metro || 0;
-                const valorCorreto = metros * precoPorMetro;
-                // *** FIM DA CORREÇÃO ***
+                const isDiaria = metros === 0.01 && precoPorMetro === 0; // <<< CORREÇÃO: Identifica diária
+                const valorCorreto = isDiaria ? (item.valor || 0) : (metros * precoPorMetro); // <<< CORREÇÃO: Usa valor salvo se for diária
+                const metrosExibicao = isDiaria ? 'DIARIA' : metros.toFixed(2).replace('.', ','); // <<< CORREÇÃO: Exibe "DIARIA"
+                const precoMetroExibicao = isDiaria ? 'N/A' : precoPorMetro.toFixed(4).replace('.', ','); // <<< CORREÇÃO: Exibe "N/A"
 
                 // Formata para o padrão CSV brasileiro (vírgula como decimal)
-                const precoPorMetroStr = precoPorMetro.toFixed(4).replace('.', ',') || '0,0000'; // <--- ALTERAÇÃO AQUI
-                const metrosStr = metros.toFixed(2).replace('.', ',') || '0,00';
-                const valorStr = valorCorreto.toFixed(2).replace('.', ',') || '0,00'; // Usa o valor recalculado
+                const valorStr = valorCorreto.toFixed(2).replace('.', ',') || '0,00'; // <<< CORREÇÃO: Usa valor correto
 
                 return [
-                    data, 
-                    `"${nomeFuncionario}"`,
+                    data,
+                    `"${nomeFuncionario}"`, // Coloca entre aspas para evitar problemas com vírgulas no nome
                     `"${nomeTurma}"`,
                     `"${nomeFazenda}"`,
-                    numTalhao,
-                    precoPorMetroStr,
-                    metrosStr,
-                    valorStr
+                    numTalhao, // Número não precisa de aspas
+                    precoMetroExibicao, // <<< CORREÇÃO
+                    metrosExibicao, // <<< CORREÇÃO
+                    valorStr // <<< CORREÇÃO
                 ].join(';');
             }).join('\n');
 
             const csvContent = headers + '\n' + csvData;
-            
+
             // Cria o Blob e o link para download
-            const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" });
+            const blob = new Blob(["\uFEFF", csvContent], { type: "text/csv;charset=utf-8;" }); // Adiciona BOM para UTF-8
             const url = URL.createObjectURL(blob);
             const fileName = `relatorio_producao_${new Date().toISOString().split('T')[0]}.csv`;
 
@@ -956,6 +1077,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+
     // Função para imprimir relatório
     function imprimirRelatorio() {
         window.print();
@@ -966,17 +1088,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         tipoRelatorioSelect.value = 'funcionario';
         funcionarioFiltro.value = '';
         turmaFiltro.value = '';
-        fazendaFiltro.value = ''; 
+        fazendaFiltro.value = '';
         configurarDatasPadrao();
         ordenacaoSelect.value = 'data_desc';
         agruparPorDataCheck.checked = true;
-        
+
         funcionarioGroup.style.display = 'block';
         turmaGroup.style.display = 'none';
-        
+
         relatorioContainer.style.display = 'none';
         semDados.style.display = 'block';
-        
+
         mostrarMensagem('Filtros limpos com sucesso!');
     }
 
@@ -985,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            
+
             if (window.sistemaAuth && typeof window.sistemaAuth.fazerLogout === 'function') {
                 window.sistemaAuth.fazerLogout();
             } else {
@@ -994,4 +1116,61 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
+
+    // Funções utilitárias (podem ser movidas para utils.js se necessário)
+    function formatarData(dataString) {
+        if (!dataString) return 'N/A';
+        try {
+            // Assume que a data vem como 'YYYY-MM-DD'
+            const parts = dataString.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            // Tenta formatar se vier em outro formato
+            return new Date(dataString).toLocaleDateString('pt-BR');
+        } catch (e) {
+            return 'Data inválida';
+        }
+    }
+
+    function mostrarMensagem(mensagem, tipo = 'success') {
+        const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
+
+        // Remove mensagens antigas para evitar acúmulo
+        const mensagensAntigas = alertContainer.querySelectorAll('.alert-message');
+        mensagensAntigas.forEach(msg => msg.remove());
+
+
+        const alertDiv = document.createElement('div');
+        // Usando as classes de alerta definidas no CSS global (style.css)
+        alertDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
+
+        alertDiv.innerHTML = `
+            <span>${mensagem}</span>
+            <button onclick="this.parentElement.remove()" style="background:none; border:none; font-size: 1.2rem; cursor: pointer; color: inherit; margin-left: 15px;">&times;</button>
+        `;
+
+        alertContainer.prepend(alertDiv); // Adiciona no início
+
+        // Remove a mensagem após 5 segundos, mas apenas se o usuário não a fechou
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                 alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+
+    async function testarConexaoSupabase() {
+        try {
+            const { error } = await supabase.from('turmas').select('id').limit(1);
+            if (error) throw error;
+            console.log('✅ Conexão com Supabase estabelecida');
+            return true;
+        } catch (error) {
+            throw new Error(`Falha na conexão: ${error.message}`);
+        }
+    }
+
 });
