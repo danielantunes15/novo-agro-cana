@@ -1,4 +1,4 @@
-// js/relatorios-completos.js - SISTEMA DE RELATÓRIOS COMPLETOS COM PDF PROFISSIONAL E EXCEL
+// js/relatorios-completos.js - VERSÃO CORRIGIDA (COM 4 CASAS DECIMAIS NO PREÇO/M)
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Elementos do DOM
@@ -212,7 +212,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             exportarPdfBtn.addEventListener('click', exportarPDFProfissional);
         }
 
+<<<<<<< HEAD
+=======
         // CORREÇÃO: Chama a função de exportação única com a nova lógica
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
         if (exportarExcelBtn) {
             exportarExcelBtn.addEventListener('click', exportarExcel);
         }
@@ -240,12 +243,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        // Validar período máximo (90 dias)
+        // Validar período máximo (365 dias)
         const diffTime = Math.abs(new Date(dataFimValue) - new Date(dataInicioValue));
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        if (diffDays > 90) {
-            mostrarMensagem('O período máximo permitido é de 90 dias', 'error');
+        if (diffDays > 365) {
+            mostrarMensagem('O período máximo permitido é de 365 dias', 'error');
             return;
         }
         
@@ -335,10 +338,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
                 break;
             case 'valor_asc':
-                dados.sort((a, b) => a.valor - b.valor);
+                // CORREÇÃO: Ordena pelo valor recalculado
+                dados.sort((a, b) => {
+                    const valorA = (a.metros || 0) * (a.apontamentos?.preco_por_metro || 0);
+                    const valorB = (b.metros || 0) * (b.apontamentos?.preco_por_metro || 0);
+                    return valorA - valorB;
+                });
                 break;
             case 'valor_desc':
-                dados.sort((a, b) => b.valor - a.valor);
+                // CORREÇÃO: Ordena pelo valor recalculado
+                dados.sort((a, b) => {
+                    const valorA = (a.metros || 0) * (a.apontamentos?.preco_por_metro || 0);
+                    const valorB = (b.metros || 0) * (b.apontamentos?.preco_por_metro || 0);
+                    return valorB - valorA;
+                });
                 break;
         }
     }
@@ -378,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('relatorio-emissao').textContent = formatarData(new Date());
         document.getElementById('relatorio-registros').textContent = dadosRelatorio.length;
         
-        // Calcular totais e estatísticas
+        // Calcular totais e estatísticas (JÁ CORRIGIDO)
         const estatisticas = calcularEstatisticas(dadosRelatorio);
         
         // Atualizar cartões de resumo
@@ -387,11 +400,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('total-metros').textContent = estatisticas.totalMetros.toFixed(2);
         document.getElementById('total-valor').textContent = `R$ ${estatisticas.totalValor.toFixed(2)}`;
         
-        // Preencher tabela de detalhes
+        // Preencher tabela de detalhes (JÁ CORRIGIDO)
         preencherTabelaDetalhes(dadosRelatorio, agruparPorData);
     }
 
-    // Função para calcular estatísticas
+    // Função para calcular estatísticas (CORRIGIDA)
+    // Garante que o valor total seja sempre recalculado
     function calcularEstatisticas(dados) {
         let totalMetros = 0;
         let totalValor = 0;
@@ -402,8 +416,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             const apontamento = item.apontamentos;
             if (!apontamento) return;
             
-            totalMetros += item.metros || 0;
-            totalValor += item.valor || 0;
+            // *** INÍCIO DA CORREÇÃO ***
+            // Recalcula o valor baseado nos dados mestres, ignorando o item.valor salvo
+            const metros = item.metros || 0;
+            const precoPorMetro = apontamento.preco_por_metro || 0;
+            const valorCorreto = metros * precoPorMetro;
+            // *** FIM DA CORREÇÃO ***
+
+            totalMetros += metros;
+            totalValor += valorCorreto; // Usa o valor recalculado
             diasTrabalhados.add(apontamento.data_corte);
             funcionariosUnicos.add(item.funcionarios?.id);
         });
@@ -416,7 +437,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         };
     }
 
-    // Função para preencher tabela de detalhes
+    // Função para preencher tabela de detalhes (CORRIGIDA)
+    // Garante que o valor exibido e somado seja sempre recalculado
     function preencherTabelaDetalhes(dados, agruparPorData) {
         const tbody = document.getElementById('detalhes-producao');
         if (!tbody) return;
@@ -444,9 +466,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             const dataCorte = apontamento.data_corte;
             const dataFormatada = formatarData(dataCorte);
+<<<<<<< HEAD
+            const nomeFuncionario = funcionario.nome || 'N/A';
+            
+            // *** INÍCIO DA CORREÇÃO ***
+            // Recalcula o valor para exibição e soma
+            const metros = item.metros || 0;
+            const precoPorMetro = apontamento?.preco_por_metro || 0; 
+            const valorCorreto = metros * precoPorMetro;
+            // *** FIM DA CORREÇÃO ***
+            
+=======
             const precoPorMetro = apontamento?.preco_por_metro || 0; 
             const nomeFuncionario = funcionario.nome || 'N/A';
             
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
             // --- INÍCIO: Agrupamento/Totalização por Funcionário (para 'geral' e 'turma') ---
             if ((tipoRelatorio === 'geral' || tipoRelatorio === 'turma') && funcionarioAtual !== funcionario.id) {
                 if (funcionarioAtual !== '') {
@@ -490,16 +524,18 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <td>${funcionario.turmas?.nome || 'Sem turma'}</td>
                 <td>${apontamento.fazendas?.nome || 'N/A'}</td>
                 <td>${apontamento.talhoes?.numero || 'N/A'}</td>
-                <td>R$ ${precoPorMetro.toFixed(2)}</td>
-                <td>${item.metros.toFixed(2)}</td>
-                <td>R$ ${item.valor.toFixed(2)}</td>
-            `;
+                <td>R$ ${precoPorMetro.toFixed(4)}</td> <td>${metros.toFixed(2)}</td>
+                <td>R$ ${valorCorreto.toFixed(2)}</td> `;
             tbody.appendChild(tr);
             
             // Acumular totais
             if (agruparPorData) {
-                subtotalData.metros += item.metros || 0;
-                subtotalData.valor += item.valor || 0;
+                subtotalData.metros += metros;
+                subtotalData.valor += valorCorreto; // Soma o valor recalculado
+            }
+            if (tipoRelatorio === 'geral' || tipoRelatorio === 'turma') {
+                totalFuncionario.metros += metros;
+                totalFuncionario.valor += valorCorreto; // Soma o valor recalculado
             }
             if (tipoRelatorio === 'geral' || tipoRelatorio === 'turma') {
                 totalFuncionario.metros += item.metros || 0;
@@ -510,6 +546,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Adicionar subtotal final (da última data)
         if (agruparPorData && dataAtual !== '') {
             adicionarLinhaSubtotalData(tbody, subtotalData, dataAtual);
+<<<<<<< HEAD
+=======
+        }
+        
+        // Adicionar total do último funcionário (se for agrupado)
+        if ((tipoRelatorio === 'geral' || tipoRelatorio === 'turma') && funcionarioAtual !== '') {
+            adicionarLinhaTotalFuncionario(tbody, totalFuncionario, funcionarioAtual);
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
         }
         
         // Adicionar total do último funcionário (se for agrupado)
@@ -517,7 +561,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             adicionarLinhaTotalFuncionario(tbody, totalFuncionario, funcionarioAtual);
         }
         
-        // Adicionar linha de totais gerais
+        // Adicionar linha de totais gerais (Já usa a função 'calcularEstatisticas' corrigida)
         const estatisticas = calcularEstatisticas(dados);
         const trTotal = document.createElement('tr');
         trTotal.className = 'total-row';
@@ -600,7 +644,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
 
+<<<<<<< HEAD
+    // FUNÇÃO PDF (CORRIGIDA)
+    // Garante que o PDF recalcule os valores e exiba 4 casas decimais
+=======
     // FUNÇÃO PDF (Exporta um único arquivo com agrupamento, com quebra de página por funcionário se for geral/turma)
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
     async function exportarPDFProfissional() {
         if (dadosRelatorio.length === 0) {
             mostrarMensagem('Gere o relatório primeiro ou não há dados para exportar.', 'error');
@@ -617,7 +666,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             const nomeRelatorio = document.getElementById('relatorio-tipo').textContent;
             const dataInicioValue = dataInicio.value;
             const dataFimValue = dataFim.value;
+<<<<<<< HEAD
+            
+            // Usa a função já corrigida
+            const estatisticasGerais = calcularEstatisticas(dadosRelatorio); 
+=======
             const estatisticasGerais = calcularEstatisticas(dadosRelatorio);
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
 
             // 1. Preparar dados para loop (agrupa por funcionário se for geral/turma)
             let dadosPorFuncionario = {};
@@ -660,6 +715,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             for (let i = 0; i < funcionarioIds.length; i++) {
                 const funcId = funcionarioIds[i];
                 const dadosFuncionario = dadosPorFuncionario[funcId];
+<<<<<<< HEAD
+                
+                // Usa a função já corrigida
+=======
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
                 const estatisticasFuncionario = calcularEstatisticas(dadosFuncionario);
                 
                 // Se não for a primeira iteração E se o relatório for Geral/Turma (multi-funcionário), adiciona uma nova página
@@ -739,8 +799,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const funcionario = item.funcionarios;
                     
                     if (!apontamento || !funcionario) return;
+<<<<<<< HEAD
+                    
+                    // *** INÍCIO DA CORREÇÃO ***
+                    const metros = item.metros || 0;
+                    const precoPorMetro = apontamento?.preco_por_metro || 0; 
+                    const valorCorreto = metros * precoPorMetro;
+                    // *** FIM DA CORREÇÃO ***
+=======
 
                     const precoPorMetro = apontamento?.preco_por_metro || 0; 
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
 
                     tableData.push([
                         formatarData(apontamento.data_corte),
@@ -748,6 +817,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                         funcionario.turmas?.nome || 'Sem turma',
                         apontamento.fazendas?.nome || 'N/A',
                         apontamento.talhoes?.numero || 'N/A',
+<<<<<<< HEAD
+                        `R$ ${precoPorMetro.toFixed(4)}`, // <--- ALTERAÇÃO AQUI
+                        metros.toFixed(2),
+                        `R$ ${valorCorreto.toFixed(2)}` // Usa o valor recalculado
+                    ]);
+                });
+                
+                // Adicionar Totais do Funcionário/Grupo (Já usa 'estatisticasFuncionario' corrigido)
+=======
                         `R$ ${precoPorMetro.toFixed(2)}`,
                         item.metros.toFixed(2),
                         `R$ ${item.valor.toFixed(2)}`
@@ -755,6 +833,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
                 
                 // Adicionar Totais do Funcionário/Grupo
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
                 tableData.push([
                     { content: 'TOTAL DE PRODUÇÃO', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [195, 230, 203], halign: 'right' } },
                     { content: estatisticasFuncionario.totalMetros.toFixed(2), styles: { fontStyle: 'bold', fillColor: [195, 230, 203] } },
@@ -809,6 +888,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                  
                  yStartTotal += 10;
                  
+<<<<<<< HEAD
+                 // Usa 'estatisticasGerais' (já corrigido)
+=======
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
                  const summaryData = [
                      ['Itens', 'Valor'],
                      ['Total de Dias Trabalhados', estatisticasGerais.diasTrabalhados.toString()],
@@ -842,7 +925,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+<<<<<<< HEAD
+    // FUNÇÃO EXCEL (CORRIGIDA)
+    // Garante que o Excel recalcule os valores e exiba 4 casas decimais
+=======
     // FUNÇÃO EXCEL (Exporta um único arquivo sem agrupamento de metadados, apenas dados brutos)
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
     function exportarExcel() {
         if (dadosRelatorio.length === 0) {
             mostrarMensagem('Gere o relatório primeiro ou não há dados para exportar.', 'error');
@@ -877,9 +965,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const nomeTurma = funcionario?.turmas?.nome || 'Sem turma';
                 const nomeFazenda = apontamento?.fazendas?.nome || 'N/A';
                 const numTalhao = apontamento?.talhoes?.numero || 'N/A';
+<<<<<<< HEAD
+                
+                // *** INÍCIO DA CORREÇÃO ***
+                const metros = item.metros || 0;
+                const precoPorMetro = apontamento?.preco_por_metro || 0;
+                const valorCorreto = metros * precoPorMetro;
+                // *** FIM DA CORREÇÃO ***
+
+                // Formata para o padrão CSV brasileiro (vírgula como decimal)
+                const precoPorMetroStr = precoPorMetro.toFixed(4).replace('.', ',') || '0,0000'; // <--- ALTERAÇÃO AQUI
+                const metrosStr = metros.toFixed(2).replace('.', ',') || '0,00';
+                const valorStr = valorCorreto.toFixed(2).replace('.', ',') || '0,00'; // Usa o valor recalculado
+=======
                 const precoPorMetro = apontamento?.preco_por_metro?.toFixed(2).replace('.', ',') || '0,00';
                 const metros = item.metros?.toFixed(2).replace('.', ',') || '0,00';
                 const valor = item.valor?.toFixed(2).replace('.', ',') || '0,00';
+>>>>>>> 06a1383e7cf614ef1ba4a68d5b575e7413f0cf44
 
                 return [
                     data, 
@@ -887,9 +989,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                     `"${nomeTurma}"`,
                     `"${nomeFazenda}"`,
                     numTalhao,
-                    precoPorMetro,
-                    metros,
-                    valor
+                    precoPorMetroStr,
+                    metrosStr,
+                    valorStr
                 ].join(';');
             }).join('\n');
 
