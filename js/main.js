@@ -1,4 +1,4 @@
-// main.js - VERSÃO CORRIGIDA - COM RESUMO DE APONTAMENTOS E PUXAR TURMA
+// main.js - VERSÃO CORRIGIDA - COM FILTRO DE TURMA NO CORTE E ORDEM ALFABÉTICA
 document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação usando o sistema customizado
     const usuario = window.sistemaAuth?.verificarAutenticacao();
@@ -63,11 +63,27 @@ document.addEventListener('DOMContentLoaded', async function() {
             await carregarFazendas();
             await carregarTurmas();
             await carregarTurmasDiaria();
-            await carregarFuncionariosIniciais();
+            await carregarFuncionariosIniciais(); // <== JÁ FILTRA PELA TURMA SELECIONADA
             await carregarFuncionariosDiariaIniciais();
             await carregarApontamentosRecentes();
             
             // Configurar event listeners
+            
+            // NOVO: Adiciona listener para o select de turma da aba CORTE
+            const turmaSelect = document.getElementById('turma');
+            if (turmaSelect) {
+                turmaSelect.addEventListener('change', async function() {
+                    const turmaId = this.value;
+                    const funcionariosContainer = document.getElementById('funcionarios-container');
+                    
+                    // Limpa os selects de funcionários existentes
+                    if (funcionariosContainer) {
+                        funcionariosContainer.innerHTML = ''; // Limpa o container
+                        adicionarFuncionario(turmaId); // Adiciona a primeira linha já filtrada
+                    }
+                });
+            }
+            
             if (addFuncionarioBtn) {
                 addFuncionarioBtn.addEventListener('click', adicionarFuncionario);
             }
@@ -158,9 +174,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Função para adicionar campo de funcionário (Corte)
-    function adicionarFuncionario() {
+    // ATUALIZADO: Aceita turmaId opcional e corrige lógica do botão remover
+    function adicionarFuncionario(turmaId = null) {
         const funcionariosContainer = document.getElementById('funcionarios-container');
         if (!funcionariosContainer) return;
+        
+        // Se o turmaId não foi passado, busca o valor selecionado no formulário
+        if (!turmaId) {
+            const turmaSelect = document.getElementById('turma');
+            turmaId = turmaSelect ? turmaSelect.value : null;
+        }
         
         const funcionarioItem = document.createElement('div');
         funcionarioItem.className = 'funcionario-item';
@@ -188,14 +211,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (removeBtn) {
             removeBtn.addEventListener('click', function() {
                 funcionarioItem.remove();
+                 // Esconde o botão do primeiro item se só sobrar um
+                if (funcionariosContainer.children.length === 1) {
+                    const firstRemoveBtn = funcionariosContainer.querySelector('.funcionario-item .btn-remove');
+                    if (firstRemoveBtn) firstRemoveBtn.style.display = 'none';
+                }
             });
-            removeBtn.style.display = 'inline-block';
+            
+            // Mostra o botão de remover se houver mais de um funcionário
+            if (funcionariosContainer.children.length > 1) {
+                 removeBtn.style.display = 'inline-block';
+                 // Garante que o botão do primeiro item apareça se um segundo for adicionado
+                 const firstRemoveBtn = funcionariosContainer.querySelector('.funcionario-item .btn-remove');
+                 if (firstRemoveBtn) firstRemoveBtn.style.display = 'inline-block';
+            } else {
+                 removeBtn.style.display = 'none'; // Esconde se for o primeiro
+            }
         }
         
-        // Carregar funcionários no select
+        // Carregar funcionários no select (passando o turmaId)
         const selectElement = funcionarioItem.querySelector('.funcionario-select');
         if (selectElement) {
-            carregarFuncionarios(selectElement);
+            carregarFuncionarios(selectElement, turmaId);
         }
     }
     
@@ -259,10 +296,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // Função para carregar funcionários iniciais (Corte)
+    // ATUALIZADO: Passa o turmaId selecionado e esconde o botão de remover
     async function carregarFuncionariosIniciais() {
         const primeiroSelect = document.querySelector('.funcionario-select');
         if (primeiroSelect) {
-            await carregarFuncionarios(primeiroSelect);
+            // Pega a turma selecionada no início
+            const turmaId = document.getElementById('turma')?.value || null;
+            await carregarFuncionarios(primeiroSelect, turmaId);
+            
+            // Garante que o botão de remover do primeiro item esteja escondido
+            const removeBtn = primeiroSelect.closest('.funcionario-item').querySelector('.btn-remove');
+            if (removeBtn) removeBtn.style.display = 'none';
         }
     }
     
@@ -275,13 +319,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // NOVO: Função auxiliar para buscar todos os funcionários (melhora performance ao adicionar múltiplos)
-    async function buscarTodosFuncionarios() {
+    // ATUALIZADO: Aceita turmaId opcional e ordena por NOME
+    async function buscarTodosFuncionarios(turmaId = null) {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('funcionarios')
-                .select(`id, nome, codigo, turmas(nome)`) // NOVO: Seleciona o código
-                .order('codigo') // Ordena por código
-                .order('nome');
+                .select(`id, nome, codigo, turmas(nome)`) 
+                .order('nome'); // <-- ORDEM ALFABÉTICA COMO PRIORIDADE
+
+            // Se um ID de turma for fornecido, filtra por essa turma
+            if (turmaId) {
+                query = query.eq('turma', turmaId);
+            }
+                
+            const { data, error } = await query;
                 
             if (error) throw error;
             return data || [];
@@ -292,13 +343,22 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // NOVO: Função para popular o select com a lista e pré-selecionar o ID
+    // ATUALIZADO: Prioriza o Nome na exibição
     function popularSelectFuncionario(selectElement, funcionarios, funcionarioId = null) {
         selectElement.innerHTML = '<option value="">Selecione o funcionário</option>';
+        
+        // A lista 'funcionarios' já vem ordenada alfabeticamente do 'buscarTodosFuncionarios'
+        
         funcionarios.forEach(funcionario => {
             const option = document.createElement('option');
             option.value = funcionario.id;
-            // EXIBE: Código + Nome + Turma
-            option.textContent = `${funcionario.codigo ? funcionario.codigo + ' - ' : ''}${funcionario.nome} (${funcionario.turmas?.nome || 'Sem turma'})`;
+            
+            // EXIBE: Nome (Cód: XX - Turma)
+            const codigoTexto = funcionario.codigo ? ` (Cód: ${funcionario.codigo}` : ' (';
+            const turmaTexto = funcionario.turmas?.nome ? ` - ${funcionario.turmas.nome})` : 'Sem turma)';
+            
+            option.textContent = `${funcionario.nome}${codigoTexto}${turmaTexto}`;
+            
             if (funcionarioId === funcionario.id) {
                  option.selected = true;
             }
@@ -306,12 +366,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
+
     // Função para carregar funcionários (Corte)
-    async function carregarFuncionarios(selectElement) {
+    // ATUALIZADO: Aceita turmaId opcional
+    async function carregarFuncionarios(selectElement, turmaId = null) {
         if (!selectElement) return;
         
         try {
-            const funcionarios = await buscarTodosFuncionarios();
+            // Passa o turmaId para a busca
+            const funcionarios = await buscarTodosFuncionarios(turmaId); 
             popularSelectFuncionario(selectElement, funcionarios);
 
         } catch (error) {
@@ -325,7 +388,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!selectElement) return;
         
         try {
-            const funcionarios = await buscarTodosFuncionarios();
+            // Busca todos os funcionários por padrão (a filtragem ocorre no 'puxarFuncionariosDaTurma')
+            const funcionarios = await buscarTodosFuncionarios(); 
             popularSelectFuncionario(selectElement, funcionarios);
 
         } catch (error) {
@@ -349,16 +413,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             mostrarMensagem('Buscando funcionários da turma...', 'success');
             
-            // 1. Buscar todos os funcionários da turma selecionada
-            const { data: funcionariosDaTurma, error } = await supabase
-                .from('funcionarios')
-                .select(`id, nome, codigo, turmas(nome)`) // NOVO: Seleciona o código
-                .eq('turma', turmaId)
-                .order('codigo') // Ordena por código
-                .order('nome');
+            // 1. Buscar todos os funcionários da turma selecionada (JÁ EM ORDEM ALFABÉTICA)
+            const funcionariosDaTurma = await buscarTodosFuncionarios(turmaId);
                 
-            if (error) throw error;
-            
             if (!funcionariosDaTurma || funcionariosDaTurma.length === 0) {
                 mostrarMensagem('Nenhum funcionário encontrado nesta turma.', 'error');
                 // Limpa o container se não houver ninguém
@@ -371,6 +428,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             funcionariosContainer.innerHTML = '';
             
             // 3. Obter a lista completa de funcionários (para popular os selects)
+            // (Necessário caso o usuário queira trocar manualmente para alguém de outra turma)
             const allFuncionarios = await buscarTodosFuncionarios();
 
             // 4. Adicionar os itens
