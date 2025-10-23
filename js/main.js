@@ -1,4 +1,4 @@
-// main.js - VERSÃO CORRIGIDA - COM FILTRO DE TURMA NO CORTE E ORDEM ALFABÉTICA
+// js/main.js - VERSÃO CORRIGIDA - COM FILTRO DE TURMA NO CORTE E ORDEM ALFABÉTICA
 document.addEventListener('DOMContentLoaded', async function() {
     // Verificar autenticação usando o sistema customizado
     const usuario = window.sistemaAuth?.verificarAutenticacao();
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             if (addFuncionarioBtn) {
-                addFuncionarioBtn.addEventListener('click', adicionarFuncionario);
+                addFuncionarioBtn.addEventListener('click', () => adicionarFuncionario());
             }
 
             if (addFuncionarioDiariaBtn) {
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!funcionariosContainer) return;
         
         // Se o turmaId não foi passado, busca o valor selecionado no formulário
-        if (!turmaId) {
+        if (turmaId === null || typeof turmaId === 'object') {
             const turmaSelect = document.getElementById('turma');
             turmaId = turmaSelect ? turmaSelect.value : null;
         }
