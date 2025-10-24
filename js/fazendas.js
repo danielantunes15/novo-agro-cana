@@ -325,13 +325,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             let html = '';
             
             data.forEach(fazenda => {
+                // CÓDIGO CORRIGIDO PARA MELHORAR O VISUAL E USAR CLASSES CSS
                 html += `
-                    <div class="fazenda-item" style="margin-bottom: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h3 style="margin: 0; color: #2c7744;">${fazenda.nome}</h3>
-                            <div>
-                                <button class="btn-secondary" onclick="editarFazenda('${fazenda.id}')">Editar Fazenda</button>
-                                <button class="btn-remove" onclick="excluirFazenda('${fazenda.id}')">Excluir Fazenda</button>
+                    <div class="fazenda-item">
+                        <div class="fazenda-header">
+                            <h3 class="fazenda-title">${fazenda.nome}</h3>
+                            <div class="fazenda-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="editarFazenda('${fazenda.id}')">Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick="excluirFazenda('${fazenda.id}')">Excluir Tudo</button>
                             </div>
                         </div>
                 `;
@@ -366,8 +367,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 <td>${talhao.producao_estimada.toFixed(2)}</td>
                                 <td>R$ ${precoPorMetro.toFixed(4)}</td>
                                 <td>
-                                    <button class="btn-secondary" onclick="editarTalhao('${talhao.id}')">Editar</button>
-                                    <button class="btn-remove" onclick="excluirTalhao('${talhao.id}')">Excluir</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="editarTalhao('${talhao.id}')">Editar</button>
+                                    <button class="btn btn-danger btn-sm" onclick="excluirTalhao('${talhao.id}')">Excluir</button>
                                 </td>
                             </tr>
                         `;
