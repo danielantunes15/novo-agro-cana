@@ -35,12 +35,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         contentElement.style.display = 'block';
 
         await carregarDadosIniciais();
-        await carregarApontamentos();
-        
+        await aplicarFiltrosIniciais(); // Chamo uma nova função para definir filtros iniciais e carregar
+
         filtroForm.addEventListener('submit', aplicarFiltros);
         limparFiltrosBtn.addEventListener('click', limparFiltros);
         prevPageBtn.addEventListener('click', () => mudarPagina(-1));
         nextPageBtn.addEventListener('click', () => mudarPagina(1));
+        
+        // NOVO: Listener para o botão Apagar Tudo
+        const apagarTudoBtn = document.getElementById('apagar-tudo-periodo');
+        if (apagarTudoBtn) {
+            apagarTudoBtn.addEventListener('click', apagarTudoNoPeriodo);
+        }
 
         // Configurar modal
         const closeModal = document.querySelector('.close');
@@ -63,6 +69,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         loadingElement.style.display = 'none';
         errorElement.style.display = 'block';
     }
+
+    // Função auxiliar para aplicar filtros iniciais
+    async function aplicarFiltrosIniciais() {
+        // Obter valores iniciais (definidos em carregarDadosIniciais)
+        const dataInicio = document.getElementById('data-inicio').value;
+        const dataFim = document.getElementById('data-fim').value;
+        
+        currentFilters = { dataInicio, dataFim, turma: turmaFiltro.value, fazendaId: fazendaFiltro.value };
+        currentPage = 1;
+        await carregarApontamentos(currentFilters);
+    }
+
 
     async function carregarDadosIniciais() {
         // Configurar datas padrão (últimos 30 dias)
@@ -295,8 +313,88 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         currentFilters = {};
         currentPage = 1;
-        carregarApontamentos();
+        carregarApontamentos(currentFilters); // Corrigido para recarregar a lista com filtros vazios
     }
+
+    // NOVA FUNÇÃO: Apagar todos os apontamentos dentro do período filtrado
+    async function apagarTudoNoPeriodo() {
+        const { dataInicio, dataFim } = currentFilters;
+
+        if (!dataInicio || !dataFim) {
+            mostrarMensagem('Defina as datas de Início e Fim para usar o Apagar Tudo no Período.', 'error');
+            return;
+        }
+
+        const dataInicioF = formatarData(dataInicio);
+        const dataFimF = formatarData(dataFim);
+
+        // NOTIFICAÇÃO DE CONFIRMAÇÃO ÚNICA E EXPLÍCITA
+        const confirmacao = confirm(`
+            ⚠️ ATENÇÃO: EXCLUSÃO PERMANENTE DE DADOS! ⚠️
+            
+            Esta ação é IRREVERSÍVEL e DELETARÁ:
+            - TODOS os Apontamentos (Cortes e Diárias)
+            - TODOS os Cortes de Funcionários associados
+            
+            Período a ser excluído:
+            De ${dataInicioF} a ${dataFimF}
+            
+            Pressione OK para DELETAR PERMANENTEMENTE.
+        `);
+
+        if (!confirmacao) {
+            mostrarMensagem('Exclusão em massa cancelada pelo usuário.', 'info');
+            return;
+        }
+        
+        try {
+            mostrarMensagem(`Iniciando exclusão de apontamentos no período ${dataInicioF} a ${dataFimF}...`, 'warning');
+
+            // 1. Encontrar todos os IDs de apontamentos no período
+            const { data: apontamentosNoPeriodo, error: selectError } = await supabase
+                .from('apontamentos')
+                .select('id')
+                .gte('data_corte', dataInicio)
+                .lte('data_corte', dataFim);
+                
+            if (selectError) throw selectError;
+            
+            if (!apontamentosNoPeriodo || apontamentosNoPeriodo.length === 0) {
+                mostrarMensagem('Nenhum apontamento encontrado neste período para exclusão.', 'success');
+                return;
+            }
+
+            const apontamentoIds = apontamentosNoPeriodo.map(a => a.id);
+            const totalApontamentos = apontamentoIds.length;
+            
+            // 2. Excluir Cortes de Funcionários associados
+            const { error: cortesError } = await supabase
+                .from('cortes_funcionarios')
+                .delete()
+                .in('apontamento_id', apontamentoIds);
+                
+            if (cortesError) throw cortesError;
+            
+            // 3. Excluir Apontamentos principais
+            const { error: apontamentosError } = await supabase
+                .from('apontamentos')
+                .delete()
+                .in('id', apontamentoIds);
+                
+            if (apontamentosError) throw apontamentosError;
+            
+            mostrarMensagem(`✅ Sucesso! ${totalApontamentos} apontamentos e seus cortes associados foram excluídos permanentemente no período de ${dataInicioF} a ${dataFimF}.`, 'success');
+            
+            // 4. Recarregar a lista com o filtro ativo
+            currentPage = 1;
+            await carregarApontamentos(currentFilters);
+            
+        } catch (error) {
+            console.error('Erro ao excluir apontamentos do período:', error);
+            mostrarMensagem('ERRO FATAL: Não foi possível excluir o período. Verifique as restrições do banco. Detalhes: ' + error.message, 'error');
+        }
+    }
+
 
     // Funções para edição de apontamentos
     window.editarApontamento = async function(apontamentoId) {
@@ -543,7 +641,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             mostrarMensagem('Apontamento atualizado com sucesso!');
             fecharModal();
-            await carregarApontamentos();
+            // CORREÇÃO: Recarrega com os filtros ativos
+            await carregarApontamentos(currentFilters); 
             
         } catch (error) {
             console.error('Erro ao atualizar apontamento:', error);
@@ -587,7 +686,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 mostrarMensagem('Corte do funcionário excluído com sucesso!');
             }
             
-            await carregarApontamentos();
+            // CORREÇÃO: Recarrega com os filtros ativos
+            await carregarApontamentos(currentFilters); 
             
         } catch (error) {
             console.error('Erro ao excluir corte:', error);
@@ -619,11 +719,91 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (apontamentoError) throw apontamentoError;
             
             mostrarMensagem('Apontamento completo excluído com sucesso!');
-            await carregarApontamentos();
+            // CORREÇÃO: Recarrega com os filtros ativos
+            await carregarApontamentos(currentFilters); 
             
         } catch (error) {
             console.error('Erro ao excluir apontamento:', error);
             mostrarMensagem('Erro ao excluir apontamento: ' + error.message, 'error');
         }
     };
+    
+    // FUNÇÃO MODIFICADA: Apagar todos os apontamentos dentro do período filtrado
+    async function apagarTudoNoPeriodo() {
+        const { dataInicio, dataFim } = currentFilters;
+
+        if (!dataInicio || !dataFim) {
+            mostrarMensagem('Defina as datas de Início e Fim para usar o Apagar Tudo no Período.', 'error');
+            return;
+        }
+
+        const dataInicioF = formatarData(dataInicio);
+        const dataFimF = formatarData(dataFim);
+
+        // NOTIFICAÇÃO DE CONFIRMAÇÃO ÚNICA E EXPLÍCITA (AGORA INCLUI O PERÍODO)
+        const confirmacao = confirm(`
+            ⚠️ ATENÇÃO: EXCLUSÃO PERMANENTE DE DADOS! ⚠️
+            
+            Esta ação é IRREVERSÍVEL e DELETARÁ:
+            - TODOS os Apontamentos (Cortes e Diárias)
+            - TODOS os Cortes de Funcionários associados
+            
+            Período a ser excluído:
+            De ${dataInicioF} a ${dataFimF}
+            
+            Pressione OK para DELETAR PERMANENTEMENTE.
+        `);
+
+        if (!confirmacao) {
+            mostrarMensagem('Exclusão em massa cancelada pelo usuário.', 'info');
+            return;
+        }
+        
+        try {
+            mostrarMensagem(`Iniciando exclusão de apontamentos no período ${dataInicioF} a ${dataFimF}...`, 'warning');
+
+            // 1. Encontrar todos os IDs de apontamentos no período
+            const { data: apontamentosNoPeriodo, error: selectError } = await supabase
+                .from('apontamentos')
+                .select('id')
+                .gte('data_corte', dataInicio)
+                .lte('data_corte', dataFim);
+                
+            if (selectError) throw selectError;
+            
+            if (!apontamentosNoPeriodo || apontamentosNoPeriodo.length === 0) {
+                mostrarMensagem('Nenhum apontamento encontrado neste período para exclusão.', 'success');
+                return;
+            }
+
+            const apontamentoIds = apontamentosNoPeriodo.map(a => a.id);
+            const totalApontamentos = apontamentoIds.length;
+            
+            // 2. Excluir Cortes de Funcionários associados
+            const { error: cortesError } = await supabase
+                .from('cortes_funcionarios')
+                .delete()
+                .in('apontamento_id', apontamentoIds);
+                
+            if (cortesError) throw cortesError;
+            
+            // 3. Excluir Apontamentos principais
+            const { error: apontamentosError } = await supabase
+                .from('apontamentos')
+                .delete()
+                .in('id', apontamentoIds);
+                
+            if (apontamentosError) throw apontamentosError;
+            
+            mostrarMensagem(`✅ Sucesso! ${totalApontamentos} apontamentos e seus cortes associados foram excluídos permanentemente no período de ${dataInicioF} a ${dataFimF}.`, 'success');
+            
+            // 4. Recarregar a lista com o filtro ativo
+            currentPage = 1;
+            await carregarApontamentos(currentFilters);
+            
+        } catch (error) {
+            console.error('Erro ao excluir apontamentos do período:', error);
+            mostrarMensagem('ERRO FATAL: Não foi possível excluir o período. Verifique as restrições do banco. Detalhes: ' + error.message, 'error');
+        }
+    }
 });

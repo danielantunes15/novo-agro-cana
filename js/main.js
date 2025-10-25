@@ -538,6 +538,42 @@ document.addEventListener('DOMContentLoaded', async function() {
         return mapeamento[turmaNome] || 'turma1';
     }
 
+    // NOVA FUNÇÃO: Verifica se algum funcionário já tem apontamento na data
+    async function verificarConflitoApontamento(dataCorte, funcionarioIds) {
+        try {
+            const { data, error } = await supabase
+                .from('cortes_funcionarios')
+                .select(`
+                    funcionario_id,
+                    funcionarios(nome),
+                    apontamentos(data_corte)
+                `)
+                // Filtra pelos IDs de funcionários que estamos tentando inserir
+                .in('funcionario_id', funcionarioIds);
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) return []; // Sem conflito
+
+            const conflitos = [];
+            
+            // Compara cada registro existente com a data que estamos tentando salvar
+            data.forEach(corte => {
+                // Checa se a data do apontamento existente coincide com a data de corte que estamos salvando
+                if (corte.apontamentos?.data_corte === dataCorte) {
+                    conflitos.push(corte.funcionarios?.nome || `ID: ${corte.funcionario_id}`);
+                }
+            });
+
+            // Retorna a lista de nomes de funcionários que já têm apontamento na data, removendo duplicatas de nomes
+            return [...new Set(conflitos)];
+
+        } catch (error) {
+            console.error('Erro ao verificar conflito de apontamento:', error);
+            throw new Error('Falha ao verificar conflitos no banco de dados.');
+        }
+    }
+
     // FUNÇÃO SALVAR APONTAMENTO - CORTE (Metragem)
     async function salvarApontamento(e) {
         e.preventDefault();
@@ -564,6 +600,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Coletar dados dos funcionários
         const funcionariosItens = document.querySelectorAll('#funcionarios-container .funcionario-item');
         const cortes = [];
+        const funcionarioIds = []; // Array para rastrear IDs
         
         if (funcionariosItens.length === 0) {
             mostrarMensagem('Adicione pelo menos um funcionário.', 'error');
@@ -579,12 +616,37 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
             
+            const funcId = funcionarioSelect.value;
+            
+            // NOVO: Validação interna: Evita adicionar o mesmo funcionário duas vezes no mesmo formulário
+            if (funcionarioIds.includes(funcId)) {
+                // Busca o nome do funcionário se possível para uma mensagem mais amigável
+                const funcionarioNome = funcionarioSelect.options[funcionarioSelect.selectedIndex].textContent.split('(')[0].trim() || `ID ${funcId}`;
+                mostrarMensagem(`ERRO: O funcionário ${funcionarioNome} foi adicionado mais de uma vez neste formulário.`, 'error');
+                return;
+            }
+
             cortes.push({
-                funcionario_id: funcionarioSelect.value,
+                funcionario_id: funcId,
                 metros: parseFloat(metrosInput.value)
             });
+            funcionarioIds.push(funcId);
         }
         
+        // NOVO: VALIDAÇÃO DE CONFLITO POR DATA (Impede mais de um apontamento por pessoa por dia)
+        try {
+            const conflitos = await verificarConflitoApontamento(dataCorte, funcionarioIds);
+            
+            if (conflitos.length > 0) {
+                mostrarMensagem(`ERRO: Os seguintes funcionários já possuem um apontamento (corte ou diária) registrado para a data ${formatarData(dataCorte)}: ${conflitos.join(', ')}. Não é permitido mais de um apontamento por pessoa por dia.`, 'error');
+                return;
+            }
+        } catch (error) {
+            mostrarMensagem('Falha na verificação de conflitos: ' + error.message, 'error');
+            return;
+        }
+        // FIM NOVO: VALIDAÇÃO DE CONFLITO
+
         try {
             // Buscar dados do talhão
             const { data: talhaoData, error: talhaoError } = await supabase
@@ -690,7 +752,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Coletar IDs dos funcionários selecionados
         const funcionariosDiariaItens = document.querySelectorAll('#funcionarios-diaria-container .funcionario-item');
-        const funcionariosDiariaIds = [];
+        let funcionariosDiariaIds = [];
         
         if (funcionariosDiariaItens.length === 0) {
             mostrarMensagem('Adicione pelo menos um funcionário.', 'error');
@@ -700,7 +762,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         for (const item of funcionariosDiariaItens) {
             const funcionarioSelect = item.querySelector('.funcionario-select-diaria');
             if (funcionarioSelect?.value) {
-                funcionariosDiariaIds.push(funcionarioSelect.value);
+                const funcId = funcionarioSelect.value;
+                
+                 // NOVO: Validação interna: Evita adicionar o mesmo funcionário duas vezes no mesmo formulário
+                if (funcionariosDiariaIds.includes(funcId)) {
+                    // Busca o nome do funcionário se possível para uma mensagem mais amigável
+                    const funcionarioNome = funcionarioSelect.options[funcionarioSelect.selectedIndex].textContent.split('(')[0].trim() || `ID ${funcId}`;
+                    mostrarMensagem(`ERRO: O funcionário ${funcionarioNome} foi adicionado mais de uma vez neste formulário.`, 'error');
+                    return;
+                }
+
+                funcionariosDiariaIds.push(funcId);
             }
         }
         
@@ -708,6 +780,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             mostrarMensagem('Selecione pelo menos um funcionário válido.', 'error');
             return;
         }
+
+        // NOVO: VALIDAÇÃO DE CONFLITO POR DATA (Impede mais de um apontamento por pessoa por dia)
+        try {
+            const conflitos = await verificarConflitoApontamento(dataDiaria, funcionariosDiariaIds);
+            
+            if (conflitos.length > 0) {
+                mostrarMensagem(`ERRO: Os seguintes funcionários já possuem um apontamento (corte ou diária) registrado para a data ${formatarData(dataDiaria)}: ${conflitos.join(', ')}. Não é permitido mais de um apontamento por pessoa por dia.`, 'error');
+                return;
+            }
+        } catch (error) {
+            mostrarMensagem('Falha na verificação de conflitos: ' + error.message, 'error');
+            return;
+        }
+        // FIM NOVO: VALIDAÇÃO DE CONFLITO
 
         try {
             const usuarioLogado = window.sistemaAuth?.verificarAutenticacao();

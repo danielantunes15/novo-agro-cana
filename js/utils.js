@@ -6,12 +6,16 @@
  * @param {string} [tipo='success'] - O tipo de mensagem ('success' ou 'error').
  */
 function mostrarMensagem(mensagem, tipo = 'success') {
-    const alertContainer = document.getElementById('alert-container');
+    // Busca o contêiner flutuante, se não existir, cria um
+    let alertContainer = document.getElementById('alert-container-flutuante');
     if (!alertContainer) {
-        console.error('Contêiner de alerta não encontrado.');
-        return;
+        alertContainer = document.createElement('div');
+        alertContainer.id = 'alert-container-flutuante';
+        // É importante que ele seja adicionado ao body para poder flutuar
+        document.body.appendChild(alertContainer);
     }
 
+    // Remove mensagens antigas para evitar acúmulo
     const mensagensAntigas = alertContainer.querySelectorAll('.alert-message');
     mensagensAntigas.forEach(msg => msg.remove());
 
@@ -19,13 +23,13 @@ function mostrarMensagem(mensagem, tipo = 'success') {
     mensagemDiv.className = `alert-message ${tipo === 'error' ? 'alert-error' : 'alert-success'}`;
     mensagemDiv.setAttribute('role', 'alert');
     mensagemDiv.innerHTML = `
-        <div style="padding: 1rem; margin: 1rem 0; border-radius: 4px; background-color: ${tipo === 'error' ? '#f8d7da' : '#d4edda'}; color: ${tipo === 'error' ? '#721c24' : '#155724'};">
-            <strong>${tipo === 'error' ? '⚠️' : '✅'} </strong> ${mensagem}
-            <button onclick="this.parentElement.parentElement.remove()" style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">×</button>
+        <div style="padding: 1rem; border-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
+            <strong>${tipo === 'error' ? '⚠️ Erro:' : '✅ Sucesso:'} </strong> ${mensagem}
+            <button onclick="this.closest('.alert-message').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: inherit; margin-left: 15px; line-height: 1;">&times;</button>
         </div>
     `;
     
-    alertContainer.prepend(mensagemDiv);
+    alertContainer.prepend(mensagemDiv); // Adiciona no topo da lista (ou do contêiner)
 
     setTimeout(() => {
         if (mensagemDiv.parentElement) {

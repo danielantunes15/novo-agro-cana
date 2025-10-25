@@ -346,6 +346,38 @@ tr:hover {
     min-width: 90px;
 }
 
+/* ===== ESTILO PARA NOTIFICAÇÕES FLUTUANTES (NOVO) ===== */
+#alert-container-flutuante {
+    position: fixed; /* Fixa a posição na tela */
+    top: 20px;
+    right: 20px;
+    z-index: 2000; /* Garante que fique acima de tudo (incluindo o header) */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* Alinha as notificações à direita */
+    max-width: 90%; /* Limite para mobile */
+}
+
+/* Ajustes para a mensagem dentro do contêiner flutuante */
+#alert-container-flutuante .alert-message {
+    margin-bottom: 10px; /* Espaçamento entre as notificações */
+    width: 100%; /* Ocupa a largura máxima do contêiner flutuante */
+    max-width: 400px; /* Largura máxima razoável */
+    opacity: 0; /* Começa invisível para a animação */
+    transform: translateX(100%); /* Começa fora da tela à direita */
+    animation: slideInNotification 0.3s ease-out forwards; /* Aplica a animação */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Sombra mais destacada */
+}
+
+/* Animação para entrada suave */
+@keyframes slideInNotification {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+/* ======================================================= */
+
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 1024px) {
     /* Ajuste no Container do Header para mobile */
@@ -439,6 +471,11 @@ tr:hover {
     
     .card {
         padding: 1rem;
+    }
+    
+    #alert-container-flutuante {
+        top: 10px;
+        right: 10px;
     }
 }
 
