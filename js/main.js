@@ -535,7 +535,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             'Turma F': 'turma3'  // Fallback
         };
         
-        return mapeamento[turmaNome] || 'turma1';
+        // Simplesmente retorna o nome da turma em letras minúsculas sem espaços, se o nome não estiver no mapeamento
+        return mapeamento[turmaNome] || turmaNome.toLowerCase().replace(/\s/g, ''); 
     }
 
     // NOVA FUNÇÃO: Verifica se algum funcionário já tem apontamento na data
@@ -971,12 +972,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const tipoApontamento = isDiaria ? 'Diária' : 'Corte';
                 const metrosExibicao = totalMetros > 0 ? totalMetros.toFixed(2) : 'N/A';
                 
+                // CORREÇÃO: Aprimoramento na exibição do nome da turma (se for o valor mapeado 'turma1', 'turma2', etc.)
+                const nomeTurmaExibicao = apontamento.turma 
+                    ? (apontamento.turma.startsWith('turma') 
+                        ? 'Turma ' + apontamento.turma.slice(5) // Converte 'turma1' para 'Turma 1'
+                        : apontamento.turma) // Caso seja outro nome salvo, exibe o nome original
+                    : 'N/A';
+                
                 // Gera a linha de resumo
                 html += `
                     <tr>
                         <td>${dataFormatada}</td>
                         <td>${tipoApontamento}</td>
-                        <td>${apontamento.turma || 'N/A'}</td>
+                        <td>${nomeTurmaExibicao}</td>
                         <td>${apontamento.fazendas?.nome || 'N/A (Diária)'}</td>
                         <td>${apontamento.talhoes?.numero || 'N/A (Diária)'}</td>
                         <td>${numFuncionarios}</td>
