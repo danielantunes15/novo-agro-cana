@@ -539,14 +539,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     // NOVA FUNÇÃO: Verifica se algum funcionário já tem apontamento na data
-    async function verificarConflitoApontamento(dataCorte, funcionarioIds) {
+    // MODIFICADO: Aceita talhaoId para a lógica de conflito
+    async function verificarConflitoApontamento(dataCorte, funcionarioIds, talhaoId = null) {
         try {
             const { data, error } = await supabase
                 .from('cortes_funcionarios')
                 .select(`
                     funcionario_id,
                     funcionarios(nome),
-                    apontamentos(data_corte)
+                    apontamentos(data_corte, talhao_id, fazenda_id) // Adicionado talhao_id e fazenda_id
                 `)
                 // Filtra pelos IDs de funcionários que estamos tentando inserir
                 .in('funcionario_id', funcionarioIds);
@@ -555,24 +556,53 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (!data || data.length === 0) return []; // Sem conflito
 
-            const conflitos = [];
+            // Conjunto para evitar adicionar o mesmo nome de funcionário duas vezes na lista de conflitos
+            const nomesConflito = new Set();
             
-            // Compara cada registro existente com a data que estamos tentando salvar
+            // Compara cada registro existente com a data e talhão que estamos tentando salvar
             data.forEach(corte => {
-                // Checa se a data do apontamento existente coincide com a data de corte que estamos salvando
-                if (corte.apontamentos?.data_corte === dataCorte) {
-                    conflitos.push(corte.funcionarios?.nome || `ID: ${corte.funcionario_id}`);
+                const apontamentoExistente = corte.apontamentos;
+                
+                // 1. Deve ser o mesmo dia
+                if (apontamentoExistente?.data_corte === dataCorte) {
+                    
+                    // Um apontamento é considerado DIÁRIA se não tiver fazenda_id ou talhao_id (na lógica de salvamento)
+                    const isApontamentoExistenteDiaria = !apontamentoExistente.fazenda_id || !apontamentoExistente.talhao_id;
+                    const isApontamentoAtualDiaria = talhaoId === null;
+
+                    // Lógica de Conflito
+                    
+                    if (isApontamentoAtualDiaria) {
+                        // Cenario 1: Estamos salvando uma DIÁRIA.
+                        // Conflito se já houver qualquer apontamento (Corte ou Diária) para o funcionário neste dia.
+                        // A diária sempre é exclusiva por dia.
+                        nomesConflito.add(corte.funcionarios?.nome || `ID: ${corte.funcionario_id}`);
+                        
+                    } else if (isApontamentoExistenteDiaria) {
+                        // Cenario 2: Estamos salvando um CORTE e já existe uma DIÁRIA no dia.
+                        // Conflito: Diária é exclusiva e impede outros apontamentos (Corte ou Diária) no mesmo dia.
+                        nomesConflito.add(corte.funcionarios?.nome || `ID: ${corte.funcionario_id}`);
+
+                    } else {
+                        // Cenario 3: Estamos salvando um CORTE e o apontamento existente também é um CORTE.
+                        // Conflito APENAS se for o mesmo TALHÃO no mesmo dia.
+                        if (apontamentoExistente.talhao_id === talhaoId) {
+                            nomesConflito.add(corte.funcionarios?.nome || `ID: ${corte.funcionario_id}`);
+                        }
+                        // Se o talhao_id for diferente, não há conflito, conforme solicitado.
+                    }
                 }
             });
 
-            // Retorna a lista de nomes de funcionários que já têm apontamento na data, removendo duplicatas de nomes
-            return [...new Set(conflitos)];
+            // Retorna a lista de nomes de funcionários que estão em conflito.
+            return [...nomesConflito];
 
         } catch (error) {
             console.error('Erro ao verificar conflito de apontamento:', error);
             throw new Error('Falha ao verificar conflitos no banco de dados.');
         }
     }
+
 
     // FUNÇÃO SALVAR APONTAMENTO - CORTE (Metragem)
     async function salvarApontamento(e) {
@@ -633,12 +663,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             funcionarioIds.push(funcId);
         }
         
-        // NOVO: VALIDAÇÃO DE CONFLITO POR DATA (Impede mais de um apontamento por pessoa por dia)
+        // NOVO: VALIDAÇÃO DE CONFLITO POR DATA
         try {
-            const conflitos = await verificarConflitoApontamento(dataCorte, funcionarioIds);
+            // Chamada MODIFICADA: Passa o talhaoId para a validação
+            const conflitos = await verificarConflitoApontamento(dataCorte, funcionarioIds, talhaoId);
             
             if (conflitos.length > 0) {
-                mostrarMensagem(`ERRO: Os seguintes funcionários já possuem um apontamento (corte ou diária) registrado para a data ${formatarData(dataCorte)}: ${conflitos.join(', ')}. Não é permitido mais de um apontamento por pessoa por dia.`, 'error');
+                // Mensagem de erro atualizada para refletir a nova lógica
+                mostrarMensagem(`ERRO: Os seguintes funcionários já possuem um apontamento para a data ${formatarData(dataCorte)}. Isso ocorre porque: 1) Já existe um apontamento de DIÁRIA neste dia (Diária é exclusiva); OU 2) Já existe um apontamento de CORTE para este mesmo TALHÃO neste dia. Conflitos: ${conflitos.join(', ')}.`, 'error');
                 return;
             }
         } catch (error) {
@@ -781,12 +813,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        // NOVO: VALIDAÇÃO DE CONFLITO POR DATA (Impede mais de um apontamento por pessoa por dia)
+        // NOVO: VALIDAÇÃO DE CONFLITO POR DATA 
         try {
-            const conflitos = await verificarConflitoApontamento(dataDiaria, funcionariosDiariaIds);
+            // Chamada MODIFICADA: talhaoId é NULL, indicando que é Diária (talhaoId = null)
+            const conflitos = await verificarConflitoApontamento(dataDiaria, funcionariosDiariaIds, null);
             
             if (conflitos.length > 0) {
-                mostrarMensagem(`ERRO: Os seguintes funcionários já possuem um apontamento (corte ou diária) registrado para a data ${formatarData(dataDiaria)}: ${conflitos.join(', ')}. Não é permitido mais de um apontamento por pessoa por dia.`, 'error');
+                // Mensagem de erro atualizada para refletir a nova lógica
+                mostrarMensagem(`ERRO: Os seguintes funcionários já possuem um apontamento para a data ${formatarData(dataDiaria)}. Um apontamento de DIÁRIA é exclusivo por dia e não pode ser lançado se já houver outro apontamento (corte ou diária). Conflitos: ${conflitos.join(', ')}.`, 'error');
                 return;
             }
         } catch (error) {
