@@ -146,3 +146,14 @@
         print-color-adjust: exact;
     }
 }
+
+/* NOVO: Estilo para o botão de Excel */
+.btn-excel {
+    background-color: #1e7e34; /* Verde escuro (cor do Excel) */
+    color: var(--white);
+}
+
+.btn-excel:hover {
+    background-color: #155724; /* Verde mais escuro */
+    transform: translateY(-1px);
+}
