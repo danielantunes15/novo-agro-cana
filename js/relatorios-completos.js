@@ -220,6 +220,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    //
+    // --- INÍCIO DA FUNÇÃO CORRIGIDA ---
+    //
     // Função principal para gerar relatório
     async function gerarRelatorio() {
         const tipoRelatorio = tipoRelatorioSelect.value;
@@ -254,49 +257,77 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             mostrarMensagem('Gerando relatório... Aguarde', 'success');
 
+            // --- INÍCIO DA CORREÇÃO ---
+            // A consulta foi invertida. Agora começa de 'apontamentos'
+            // para aplicar os filtros de data corretamente.
+            
             let query = supabase
-                .from('cortes_funcionarios')
+                .from('apontamentos')
                 .select(`
                     id,
-                    metros,
-                    valor,
-                    created_at,
-                    funcionarios(
+                    data_corte,
+                    turma,
+                    preco_por_metro,
+                    fazenda_id,
+                    fazendas(nome),
+                    talhoes(numero),
+                    cortes_funcionarios!inner( 
                         id,
-                        nome,
-                        turmas(id, nome)
-                    ),
-                    apontamentos(
-                        id,
-                        data_corte,
-                        turma,
-                        preco_por_metro,
-                        fazenda_id,
-                        fazendas(nome),
-                        talhoes(numero)
+                        metros,
+                        valor,
+                        funcionario_id,
+                        funcionarios( 
+                            id,
+                            nome,
+                            turmas(id, nome)
+                        )
                     )
                 `)
-                .gte('apontamentos.data_corte', dataInicioValue)
-                .lte('apontamentos.data_corte', dataFimValue);
+                // Aplica filtros de data DIRETAMENTE na tabela 'apontamentos'
+                .gte('data_corte', dataInicioValue)
+                .lte('data_corte', dataFimValue);
 
-            // Aplicar filtros conforme o tipo de relatório
-            if (tipoRelatorio === 'funcionario' && funcionarioId && funcionarioId !== 'todos') {
-                query = query.eq('funcionario_id', funcionarioId);
-            } else if (tipoRelatorio === 'turma' && turmaId && turmaId !== 'todos') {
-                // CORREÇÃO: Filtrar pela ID da turma na tabela 'funcionarios'
-                query = query.eq('funcionarios.turma', turmaId);
+            // Aplicar filtro de Fazenda (na tabela 'apontamentos')
+            if (fazendaId && fazendaId !== 'todos') {
+                query = query.eq('fazenda_id', fazendaId);
             }
 
-            // Aplicar filtro de Fazenda
-            if (fazendaId && fazendaId !== 'todos') {
-                query = query.eq('apontamentos.fazenda_id', fazendaId);
+            // Aplicar filtros de funcionário/turma (nas tabelas relacionadas)
+            if (tipoRelatorio === 'funcionario' && funcionarioId && funcionarioId !== 'todos') {
+                query = query.eq('cortes_funcionarios.funcionario_id', funcionarioId);
+            } else if (tipoRelatorio === 'turma' && turmaId && turmaId !== 'todos') {
+                // CORREÇÃO: Filtrar pela ID da turma na tabela 'funcionarios'
+                query = query.eq('cortes_funcionarios.funcionarios.turma', turmaId);
             }
 
             const { data: apontamentos, error } = await query;
+            // --- FIM DA CORREÇÃO DA QUERY ---
 
             if (error) throw error;
 
-            dadosRelatorio = apontamentos || [];
+            // --- NOVO PASSO: ACHATAR OS DADOS ---
+            // O restante do script espera uma lista "plana" de cortes,
+            // mas a nova query retorna uma lista de apontamentos (com cortes aninhados).
+            // Precisamos "achatar" o resultado para a estrutura antiga.
+            
+            dadosRelatorio = [];
+            if (apontamentos) {
+                apontamentos.forEach(apontamento => {
+                    // Pega os dados do apontamento (sem a lista de cortes)
+                    const apontamentoData = { ...apontamento };
+                    delete apontamentoData.cortes_funcionarios;
+
+                    // Para cada corte, cria o objeto plano que o script espera
+                    apontamento.cortes_funcionarios.forEach(corte => {
+                        dadosRelatorio.push({
+                            ...corte, // Contém id, metros, valor
+                            funcionarios: corte.funcionarios, // Adiciona os dados do funcionário
+                            apontamentos: apontamentoData // Adiciona os dados do apontamento pai
+                        });
+                    });
+                });
+            }
+            // --- FIM DO PASSO DE ACHATAR ---
 
             // Ordenar dados
             ordenarDados(dadosRelatorio, ordenacao);
@@ -319,6 +350,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             mostrarMensagem('Erro ao gerar relatório: ' + error.message, 'error');
         }
     }
+    //
+    // --- FIM DA FUNÇÃO CORRIGIDA ---
+    //
+
 
     // Função para ordenar dados
     function ordenarDados(dados, ordenacao) {
