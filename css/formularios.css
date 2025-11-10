@@ -113,52 +113,63 @@
 
 /* Estilos de Impressão */
 @media print {
-    body {
-        background-color: #fff !important;
-    }
+    
+    /* --- INÍCIO DA CORREÇÃO DEFINITIVA --- */
 
-    .no-print {
+    /* 1. Esconde tudo o que não é para imprimir */
+    .no-print, .sidebar, .header {
         display: none !important;
     }
 
-    .main {
-        padding: 0;
+    /* 2. Reseta o body para um fluxo normal de documento */
+    body {
+        display: block !important; /* Remove o 'flex' do layout.css */
+        height: auto !important;
+        width: 100% !important;
+        overflow: visible !important;
+        background-color: #fff !important;
     }
 
+    /* 3. Reseta o contentor principal (.main-content) */
+    .main-content {
+        display: block !important;
+        margin-left: 0 !important;   /* Remove a margem da sidebar */
+        width: 100% !important;
+        height: auto !important;     /* Remove o 100vh */
+        padding: 0 !important;
+        overflow: visible !important; /* Remove o overflow: auto */
+    }
+
+    /* 4. Reseta o contentor .main */
+    .main {
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+    
+    /* 5. Ajusta o formulário para a impressão */
     .form-sheet-container {
         background-color: transparent;
         padding: 0;
         margin: 0;
         border-radius: 0;
+        box-shadow: none;
+        border: none;
     }
 
     .form-sheet {
         box-shadow: none;
-        width: 100%;
+        width: 100%; /* Ocupa 100% da página de impressão */
         height: auto;
-        padding: 0;
+        min-height: auto; /* Remove altura mínima */
+        padding: 0; /* O navegador gere as margens */
         margin: 0;
+        border: none;
     }
 
     .form-sheet th {
         background-color: #e9ecef !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
-    }
-
-    /* --- INÍCIO DA CORREÇÃO --- */
-    
-    /* 1. Esconde a barra lateral do menu */
-    .sidebar {
-        display: none !important;
-    }
-
-    /* 2. Faz o conteúdo principal ocupar a página inteira */
-    .main-content {
-        margin-left: 0 !important; /* Remove o espaço da sidebar */
-        width: 100% !important;     /* Ocupa a largura total */
-        padding: 0 !important;
-        overflow: visible !important; /* Remove qualquer scroll */
     }
     
     /* --- FIM DA CORREÇÃO --- */
@@ -173,4 +184,14 @@
 .btn-excel:hover {
     background-color: #155724; /* Verde mais escuro */
     transform: translateY(-1px);
+}
+
+/* NOVO: Estilo para o botão PDF (baseado em relatorios.css) */
+.btn-pdf {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-pdf:hover {
+    background: #c82333;
 }
