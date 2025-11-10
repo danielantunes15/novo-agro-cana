@@ -145,6 +145,23 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
+
+    /* --- INÍCIO DA CORREÇÃO --- */
+    
+    /* 1. Esconde a barra lateral do menu */
+    .sidebar {
+        display: none !important;
+    }
+
+    /* 2. Faz o conteúdo principal ocupar a página inteira */
+    .main-content {
+        margin-left: 0 !important; /* Remove o espaço da sidebar */
+        width: 100% !important;     /* Ocupa a largura total */
+        padding: 0 !important;
+        overflow: visible !important; /* Remove qualquer scroll */
+    }
+    
+    /* --- FIM DA CORREÇÃO --- */
 }
 
 /* NOVO: Estilo para o botão de Excel */
