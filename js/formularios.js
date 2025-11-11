@@ -185,14 +185,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body.push(row);
             });
 
-            // --- INÍCIO DA CORREÇÃO "TOTAIS" ---
             // Cria manualmente a linha do rodapé com o colSpan
             const footRow = [
                 { content: 'TOTAIS', colSpan: 2, styles: { halign: 'left' } },
                 // As outras células da linha do rodapé são omitidas
                 // pois o colspan=2 já cobre as duas primeiras colunas.
             ];
-            // --- FIM DA CORREÇÃO "TOTAIS" ---
 
 
             doc.autoTable({
@@ -222,26 +220,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                     fontSize: 9, 
                     cellPadding: 2 
                 },
+                
+                // --- INÍCIO DA CORREÇÃO (NEGRITO E MAIOR) ---
                 styles: {
-                    fontSize: 8.5, 
+                    fontSize: 9, // <-- AUMENTADO de 8.5
+                    fontStyle: 'bold', // <-- ADICIONADO NEGRITO
                     cellPadding: 2, 
                     lineColor: [51, 51, 51], // #333
                     lineWidth: 0.1,
                     overflow: 'linebreak'
                 },
-                // --- INÍCIO DA CORREÇÃO DE LARGURA ---
+                // --- FIM DA CORREÇÃO ---
+                
                 columnStyles: {
                     // Área útil = 210mm (A4) - 15mm (margem esq) - 15mm (margem dir) = 180mm
                     0: { cellWidth: 12 }, // Cód.
-                    1: { cellWidth: 60 }, // Funcionário (Reduzido de 65)
+                    1: { cellWidth: 60 }, // Funcionário
                     2: { cellWidth: 18 }, // Metros
-                    3: { cellWidth: 25 }, // Preço/Metro (Aumentado de 20)
+                    3: { cellWidth: 25 }, // Preço/Metro
                     4: { cellWidth: 20 }, // Toneladas
                     5: { cellWidth: 18 }, // Folgas
-                    6: { cellWidth: 27 }  // Valor Total (Aumentado de 22)
+                    6: { cellWidth: 27 }  // Valor Total
                     // Total: 12 + 60 + 18 + 25 + 20 + 18 + 27 = 180mm
                 },
-                // --- FIM DA CORREÇÃO DE LARGURA ---
                 
                 // Adiciona rodapé em todas as páginas
                 didDrawPage: function(data) {
