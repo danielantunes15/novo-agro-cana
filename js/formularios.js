@@ -169,12 +169,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             doc.text('_________________________', 35, yPosition);
             doc.text(turmaNome.includes('____') ? '_________________________' : turmaNome, 125, yPosition);
 
-            yPosition += 10; // Espaço antes da tabela (diminuído)
+            yPosition += 10; // Espaço antes da tabela
 
             // --- Tabela ---
             const tableHead = document.querySelector('.form-sheet table thead');
             const tableBody = document.getElementById('funcionarios-tbody');
-            const tableFoot = document.querySelector('.form-sheet table tfoot');
 
             const head = [];
             tableHead.querySelectorAll('th').forEach(th => head.push(th.textContent.trim()));
@@ -186,16 +185,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body.push(row);
             });
 
-            const foot = [];
-            tableFoot.querySelectorAll('td').forEach(td => foot.push(td.textContent.trim()));
+            // --- INÍCIO DA CORREÇÃO "TOTAIS" ---
+            // Cria manualmente a linha do rodapé com o colSpan
+            const footRow = [
+                { content: 'TOTAIS', colSpan: 2, styles: { halign: 'left' } },
+                // As outras células da linha do rodapé são omitidas
+                // pois o colspan=2 já cobre as duas primeiras colunas.
+            ];
+            // --- FIM DA CORREÇÃO "TOTAIS" ---
+
 
             doc.autoTable({
                 startY: yPosition,
                 head: [head],
                 body: body,
-                foot: [foot],
+                foot: [footRow], // <-- USA A LINHA DE RODAPÉ CORRIGIDA
                 theme: 'grid',
-                // --- ESTILOS COMPACTOS PARA TENTAR FORÇAR EM 1 PÁGINA ---
+                // Define margens de 15mm em cada lado
+                margin: { left: 15, right: 15 }, 
                 headStyles: { 
                     fillColor: [233, 236, 239], // #e9ecef
                     textColor: [0, 0, 0], 
@@ -203,8 +210,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     halign: 'center',
                     lineColor: [51, 51, 51],
                     lineWidth: 0.1,
-                    fontSize: 7, // <-- Muito pequeno
-                    cellPadding: 1 // <-- Muito pequeno
+                    fontSize: 9, 
+                    cellPadding: 2 
                 },
                 footStyles: {
                     fillColor: [233, 236, 239], // #e9ecef
@@ -212,26 +219,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                     fontStyle: 'bold',
                     lineColor: [51, 51, 51],
                     lineWidth: 0.1,
-                    fontSize: 7, // <-- Muito pequeno
-                    cellPadding: 1 // <-- Muito pequeno
+                    fontSize: 9, 
+                    cellPadding: 2 
                 },
                 styles: {
-                    fontSize: 6.5, // <-- Extremamente pequeno
-                    cellPadding: 0.8, // <-- Extremamente pequeno
+                    fontSize: 8.5, 
+                    cellPadding: 2, 
                     lineColor: [51, 51, 51], // #333
                     lineWidth: 0.1,
-                    overflow: 'linebreak' // Evita que o texto quebre a célula
+                    overflow: 'linebreak'
                 },
-                // --- FIM DOS ESTILOS COMPACTOS ---
+                // --- INÍCIO DA CORREÇÃO DE LARGURA ---
                 columnStyles: {
-                    0: { cellWidth: 10 }, // Cód.
-                    1: { cellWidth: 70 }, // Funcionário
-                    2: { cellWidth: 'auto' }, // Metros
-                    3: { cellWidth: 'auto' }, // Preço/Metro
-                    4: { cellWidth: 'auto' }, // Toneladas
-                    5: { cellWidth: 'auto' }, // Folgas
-                    6: { cellWidth: 'auto' }  // Valor Total
+                    // Área útil = 210mm (A4) - 15mm (margem esq) - 15mm (margem dir) = 180mm
+                    0: { cellWidth: 12 }, // Cód.
+                    1: { cellWidth: 60 }, // Funcionário (Reduzido de 65)
+                    2: { cellWidth: 18 }, // Metros
+                    3: { cellWidth: 25 }, // Preço/Metro (Aumentado de 20)
+                    4: { cellWidth: 20 }, // Toneladas
+                    5: { cellWidth: 18 }, // Folgas
+                    6: { cellWidth: 27 }  // Valor Total (Aumentado de 22)
+                    // Total: 12 + 60 + 18 + 25 + 20 + 18 + 27 = 180mm
                 },
+                // --- FIM DA CORREÇÃO DE LARGURA ---
+                
                 // Adiciona rodapé em todas as páginas
                 didDrawPage: function(data) {
                     // Rodapé da Página
@@ -254,10 +265,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 doc.addPage();
                 finalY = 20; // Começa no topo da nova página
             } else {
-                finalY += 15; // Adiciona espaço (diminuído)
+                finalY += 15; // Adiciona espaço
             }
 
-            doc.setFontSize(9); // (diminuído)
+            doc.setFontSize(10); 
             doc.setTextColor(0, 0, 0);
             doc.setFont('helvetica', 'normal');
             doc.text('Assinatura do Responsável:', 15, finalY);
